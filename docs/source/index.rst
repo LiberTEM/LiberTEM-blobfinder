@@ -17,9 +17,10 @@ Documentation
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
-   
 
-..  insert list of documents for the toc here
+   changelog
+   acknowledgments
+
 
 Indices and tables
 ------------------
