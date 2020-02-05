@@ -24,7 +24,7 @@ except ImportError:
 
 class RefinementMixin():
     '''
-    To be combined with a :class:`libertem.udf.blobfinder.CorrelationUDF`
+    To be combined with a :class:`libertem_blobfinder.CorrelationUDF`
     using multiple inheritance.
 
     The mixin must come before the UDF in the inheritance list.
@@ -167,8 +167,8 @@ def run_refine(
     '''
     Wrapper function to refine the given lattice for each frame by calculating
     approximate peak positions and refining them for each frame using a
-    combination of :class:`libertem.udf.blobfinder.CorrelationUDF` and
-    :class:`libertem.udf.blobfinder.RefinementMixin`.
+    combination of :class:`libertem_blobfinder.CorrelationUDF` and
+    :class:`libertem_blobfinder.RefinementMixin`.
 
     .. versionchanged:: 0.3.0
         Support for :class:`FullFrameCorrelationUDF`
@@ -216,7 +216,7 @@ def run_refine(
     -------
     result : Dict[str, BufferWrapper]
         Result buffers of the UDF. See
-        :meth:`libertem.udf.blobfinder.correlation.CorrelationUDF.get_result_buffers` and
+        :meth:`libertem_blobfinder.correlation.CorrelationUDF.get_result_buffers` and
         :meth:`RefinementMixin.get_result_buffers` for details on the available
         buffers.
     used_indices : numpy.ndarray
@@ -232,7 +232,7 @@ def run_refine(
     >>> (result, used_indices) = run_refine(
     ...     ctx, dataset,
     ...     zero=(64, 64), a=(1, 0), b=(0, 1),
-    ...     match_pattern=libertem.udf.blobfinder.RadialGradient(radius=4),
+    ...     match_pattern=libertem_blobfinder.RadialGradient(radius=4),
     ...     matcher=grm.Matcher()
     ... )
     >>> result['centers'].data  #doctest: +ELLIPSIS
