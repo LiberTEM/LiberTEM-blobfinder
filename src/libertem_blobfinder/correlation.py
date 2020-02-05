@@ -47,7 +47,7 @@ def get_correlation(sum_result, match_pattern: MatchPattern):
     sum_result: numpy.ndarray
         2D result frame as correlation input
     match_pattern : MatchPattern
-        Instance of :class:`~libertem.udf.blobfinder.MatchPattern` to correlate
+        Instance of :class:`~libertem_blobfinder.MatchPattern` to correlate
         :code:`sum_result` with
     '''
     spec_mask = match_pattern.get_template(sig_shape=sum_result.shape)
@@ -62,9 +62,9 @@ def get_peaks(sum_result, match_pattern: MatchPattern, num_peaks):
 
     The result  can then be used as input to
     :meth:`~libertem.analysis.fullmatch.FullMatcher.full_match`
-    to extract grid parameters, :meth:`~libertem.udf.blobfinder.correlation.run_fastcorrelation`
+    to extract grid parameters, :meth:`~libertem_blobfinder.correlation.run_fastcorrelation`
     to find the position in each frame or to construct a mask to extract feature vectors with
-    :meth:`~libertem.udf.blobfinder.utils.feature_vector`.
+    :meth:`~libertem_blobfinder.utils.feature_vector`.
 
     Parameters
     ----------
@@ -72,7 +72,7 @@ def get_peaks(sum_result, match_pattern: MatchPattern, num_peaks):
     sum_result: numpy.ndarray
         2D result frame as correlation input
     match_pattern : MatchPattern
-        Instance of :class:`~libertem.udf.blobfinder.MatchPattern` to correlate
+        Instance of :class:`~libertem_blobfinder.MatchPattern` to correlate
         :code:`sum_result` with
     num_peaks : int
         Number of peaks to find
@@ -81,7 +81,7 @@ def get_peaks(sum_result, match_pattern: MatchPattern, num_peaks):
     -------
 
     >>> frame, _, _ = libertem.utils.generate.cbed_frame(radius=4)
-    >>> pattern = libertem.udf.blobfinder.RadialGradient(radius=4)
+    >>> pattern = libertem_blobfinder.RadialGradient(radius=4)
     >>> peaks = get_peaks(frame[0], pattern, 7)
     >>> print(peaks)
     [[64 64]
@@ -320,7 +320,7 @@ class FastCorrelationUDF(CorrelationUDF):
         peaks : numpy.ndarray
             Numpy array of (y, x) coordinates with peak positions in px to correlate
         match_pattern : MatchPattern
-            Instance of :class:`~libertem.udf.blobfinder.MatchPattern`
+            Instance of :class:`~libertem_blobfinder.MatchPattern`
         '''
         # For testing purposes, allow to inject a different limit via
         # an internal kwarg
@@ -397,7 +397,7 @@ class FullFrameCorrelationUDF(CorrelationUDF):
         peaks : numpy.ndarray
             Numpy array of (y, x) coordinates with peak positions in px to correlate
         match_pattern : MatchPattern
-            Instance of :class:`~libertem.udf.blobfinder.MatchPattern`
+            Instance of :class:`~libertem_blobfinder.MatchPattern`
         '''
         # For testing purposes, allow to inject a different limit via
         # an internal kwarg
@@ -475,7 +475,7 @@ class SparseCorrelationUDF(CorrelationUDF):
         peaks : numpy.ndarray
             Numpy array of (y, x) coordinates with peak positions in px to correlate
         match_pattern : MatchPattern
-            Instance of :class:`~libertem.udf.blobfinder.MatchPattern`
+            Instance of :class:`~libertem_blobfinder.MatchPattern`
         steps : int
             The template is correlated with 2 * steps + 1 symmetrically around the peak position
             in x and y direction. This defines the maximum shift that can be
@@ -580,7 +580,7 @@ def run_fastcorrelation(ctx, dataset, peaks, match_pattern: MatchPattern, roi=No
     dataset : libertem.io.dataset.base.DataSet
     peaks : numpy.ndarray
         List of peaks with (y, x) coordinates
-    match_pattern : libertem.udf.blobfinder.patterns.MatchPattern
+    match_pattern : libertem_blobfinder.patterns.MatchPattern
     roi : numpy.ndarray, optional
         Boolean mask of the navigation dimension to select region of interest (ROI)
 
@@ -603,7 +603,7 @@ def run_blobfinder(ctx, dataset, match_pattern: MatchPattern, num_peaks, roi=Non
     ----------
     ctx : libertem.api.Context
     dataset : libertem.io.dataset.base.DataSet
-    match_pattern : libertem.udf.blobfinder.patterns.MatchPattern
+    match_pattern : libertem_blobfinder.patterns.MatchPattern
     num_peaks : int
         Number of peaks to look for
     roi : numpy.ndarray, optional

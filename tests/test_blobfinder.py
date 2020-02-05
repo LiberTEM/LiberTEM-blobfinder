@@ -4,7 +4,7 @@ import numpy as np
 import scipy.ndimage
 import pytest
 
-import libertem.udf.blobfinder as blobfinder
+import libertem_blobfinder as blobfinder
 import libertem.analysis.gridmatching as grm
 import libertem.masks as m
 from libertem.utils.generate import cbed_frame
