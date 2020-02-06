@@ -1,8 +1,26 @@
 [
     {
-        "displayname": "TODO",
-        "authorname": "TODO",
-        "affiliation": "TODO",
-        "contribution": "TODO"
+        "displayname": "Reimar Bauer",
+        "authorname": "Bauer, Reimar",
+        "affiliation": "FZ J\u00fclich",
+        "contribution": "Help with Google Summer of Code 2019"
+    },
+    {
+        "displayname": "Phillip Crout",
+        "authorname": "Crout, Phillip",
+        "affiliation": "pyXem",
+        "contribution": "Discussions, work towards mutual compatibility."
+    },
+    {
+        "displayname": "Giulio Guzzinati",
+        "authorname": "Guzzinati, Giulio ",
+        "affiliation": "U Antwerp",
+        "contribution": "Discussions and publication https://arxiv.org/abs/1902.06979 leading to the affine transformation strain map"
+    },
+    {
+        "displayname": "Duncan N. Johnstone",
+        "authorname": "Johnstone, Duncan N.",
+        "affiliation": "pyXem",
+        "contribution": "Discussions, work towards mutual compatibility."
     }
 ]
