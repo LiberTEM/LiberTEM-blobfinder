@@ -307,6 +307,127 @@ class CorrelationUDF(UDF):
         pass
 
 
+def get_buf_count(crop_size, n_peaks, dtype, limit=2**19):
+    dtype = np.dtype(dtype)
+    full_size = (2 * crop_size)**2 * dtype.itemsize
+    return min(max(1, limit // full_size), n_peaks)
+
+
+def allocate_crop_bufs(crop_size, n_peaks, dtype, limit=2**19):
+    buf_count = get_buf_count(crop_size, n_peaks, dtype, limit)
+    crop_bufs = zeros((buf_count, 2 * crop_size, 2 * crop_size), dtype=dtype)
+    return crop_bufs
+
+
+def process_frame_fast(template, crop_size, frame, peaks,
+        out_centers=None, out_refineds=None, out_heights=None, out_elevations=None,
+        crop_bufs=None):
+    '''
+    Find the parameters of peaks in a diffraction pattern by correlation with a template
+
+    This function is designed to be used in an optimized pipeline with a pre-calculated
+    Fourier transform of the match pattern and optional pre-allocated buffers. It is the
+    engine of the :class:`libertem_blobfinder.udf.FastCorrelationUDF` for stand-alone
+    use independent of LiberTEM.
+
+    Parameters
+    ----------
+    template : numpy.ndarray
+        Real Fourier transfrom of the correlation pattern.
+        The source pattern should have size (2 * crop_size, 2 * crop_size). Please note that
+        the real Fourier transform (fft.rfft2) of the source pattern has a different shape!
+    crop_size : int
+        Half the size of the correlation pattern. Given as a parameter since real Fourier
+        transform changes the size.
+    frame : np.ndarray
+        Frame data. Currently, only Real values are supported.
+    peaks : np.ndarray
+        List of peaks of shape (n_peaks, 2)
+    out_centers : np.ndarray, optional
+        Output buffer for center positions of shape (n_peaks, 2) and integer dtype. Will be
+        allocated if needed.
+    out_refineds : np.ndarray, optional
+        Output buffer for refined center positions of shape (n_peaks, 2) and float dtype. Will be
+        allocated if needed.
+    out_heights : np.ndarray, optional
+        Output buffer for peak height in log scaled frame. Shape (n_peaks, ) and float dtype. Will
+        be allocated if needed.
+    out_elevations : np.ndarray, optional
+        Output buffer for peak elevation in log scaled frame. Shape (n_peaks, ) and float dtype.
+        Will be allocated if needed.
+    crop_bufs : np.ndarray, optional
+        Optional aligned buffer for pyfftw. Shape (n, 2 * crop_size, 2 * crop_size) and float dtype.
+        n doesn't have to match the number of peaks. Instead, it should be chosen for good L3 cache
+        efficiency. :meth:`allocate_crop_bufs` can be used to allocate this buffer.
+
+    Returns
+    -------
+    centers : np.ndarray
+        Center positions of shape (n_peaks, 2) and integer dtype.
+    refineds : np.ndarray
+        Refined center positions of shape (n_peaks, 2) and float dtype.
+    heights : np.ndarray
+        Peak height in log scaled frame. Shape (n_peaks, ) and float dtype.
+    elevations : np.ndarray
+        Peak elevation in log scaled frame. Shape (n_peaks, ) and float dtype
+
+    Example
+    -------
+
+    >>> frames, indices, peaks = libertem.utils.generate.cbed_frame()
+    >>> pattern = libertem_blobfinder.patterns.RadialGradient(radius=4)
+    >>> crop_size = pattern.get_crop_size()
+    >>> template = pattern.get_template(sig_shape=(2 * crop_size, 2 * crop_size))
+    >>>
+    >>> centers = np.zeros((len(frames), len(peaks), 2), dtype=np.uint16)
+    >>> refineds = np.zeros((len(frames), len(peaks), 2), dtype=np.float32)
+    >>> heights = np.zeros((len(frames), len(peaks)), dtype=np.float32)
+    >>> elevations = np.zeros((len(frames), len(peaks)), dtype=np.float32)
+    >>>
+    >>> crop_bufs = libertem_blobfinder.correlation.allocate_crop_bufs(
+    ...     crop_size, len(peaks), frames.dtype)
+    >>>
+    >>> for i, f in enumerate(frames):
+    ...     _ = process_frame_fast(
+    ...         template=template, crop_size=crop_size,
+    ...         frame=f, peaks=peaks.astype(np.int32),
+    ...         out_centers=centers[i], out_refineds=refineds[i],
+    ...         out_heights=heights[i], out_elevations=elevations[i],
+    ...         crop_bufs=crop_bufs
+    ...     )
+    >>> assert np.allclose(refineds[0], peaks, atol=0.1)
+    '''
+    if out_centers is None:
+        out_centers = np.zeros((len(peaks), 2), dtype=np.uint16)
+    if out_refineds is None:
+        out_refineds = np.zeros((len(peaks), 2), dtype=np.float32)
+    if out_heights is None:
+        out_heights = np.zeros(len(peaks), dtype=np.float32)
+    if out_elevations is None:
+        out_elevations = np.zeros(len(peaks), dtype=np.float32)
+    if crop_bufs is None:
+        crop_bufs = allocate_crop_bufs(crop_size, len(peaks), frame.dtype)
+
+    buf_count = len(crop_bufs)
+    block_count = (len(peaks) - 1) // buf_count + 1
+    for block in range(block_count):
+        start = block * buf_count
+        stop = min((block + 1) * buf_count, len(peaks))
+        size = stop - start
+        crop_disks_from_frame(
+            peaks=peaks[start:stop], frame=frame, crop_size=crop_size,
+            out_crop_bufs=crop_bufs[:size]
+        )
+        log_scale_cropbufs_inplace(crop_bufs[:size])
+        corrs = do_correlations(template, crop_bufs[:size])
+        evaluate_correlations(
+            corrs=corrs, peaks=peaks[start:stop], crop_size=crop_size,
+            out_centers=out_centers[start:stop], out_refineds=out_refineds[start:stop],
+            out_heights=out_heights[start:stop], out_elevations=out_elevations[start:stop]
+        )
+    return (out_centers, out_refineds, out_heights, out_elevations)
+
+
 class FastCorrelationUDF(CorrelationUDF):
     '''
     Fourier-based fast correlation-based refinement of peak positions within a search frame
@@ -330,14 +451,12 @@ class FastCorrelationUDF(CorrelationUDF):
 
     def get_task_data(self):
         ""
-        n_peaks = len(self.params.peaks)
+        n_peaks = len(self.get_peaks())
         mask = self.get_pattern()
         crop_size = mask.get_crop_size()
         template = mask.get_template(sig_shape=(2 * crop_size, 2 * crop_size))
-        dtype = np.float32
-        full_size = (2 * crop_size)**2 * dtype(1).nbytes
-        buf_count = min(max(1, self.limit // full_size), n_peaks)
-        crop_bufs = zeros((buf_count, 2 * crop_size, 2 * crop_size), dtype=dtype)
+        dtype = np.result_type(self.meta.input_dtype, np.float32)
+        crop_bufs = allocate_crop_bufs(crop_size, n_peaks, dtype=dtype, limit=self.limit)
         kwargs = {
             'crop_bufs': crop_bufs,
             'template': template,
@@ -355,28 +474,129 @@ class FastCorrelationUDF(CorrelationUDF):
 
     def process_frame(self, frame):
         match_pattern = self.get_pattern()
-        peaks = self.get_peaks()
-        crop_bufs = self.task_data.crop_bufs
-        crop_size = match_pattern.get_crop_size()
         (centers, refineds, peak_values, peak_elevations) = self.output_buffers()
-        template = self.get_template()
-        buf_count = len(crop_bufs)
-        block_count = (len(peaks) - 1) // buf_count + 1
-        for block in range(block_count):
-            start = block * buf_count
-            stop = min((block + 1) * buf_count, len(peaks))
-            size = stop - start
-            crop_disks_from_frame(
-                peaks=peaks[start:stop], frame=frame, crop_size=crop_size,
-                out_crop_bufs=crop_bufs[:size]
-            )
-            log_scale_cropbufs_inplace(crop_bufs[:size])
-            corrs = do_correlations(template, crop_bufs[:size])
-            evaluate_correlations(
-                corrs=corrs, peaks=peaks[start:stop], crop_size=crop_size,
-                out_centers=centers[start:stop], out_refineds=refineds[start:stop],
-                out_heights=peak_values[start:stop], out_elevations=peak_elevations[start:stop]
-            )
+        process_frame_fast(
+            template=self.get_template(), crop_size=match_pattern.get_crop_size(),
+            frame=frame, peaks=self.get_peaks(),
+            out_centers=centers, out_refineds=refineds,
+            out_heights=peak_values, out_elevations=peak_elevations,
+            crop_bufs=self.task_data.crop_bufs
+        )
+
+
+def process_frame_full(template, crop_size, frame, peaks,
+        out_centers=None, out_refineds=None, out_heights=None, out_elevations=None,
+        frame_buf=None, buf_count=None):
+    '''
+    Find the parameters of peaks in a diffraction pattern by correlation with a template
+
+    This function is designed to be used in an optimized pipeline with a pre-calculated
+    Fourier transform of the match pattern and optional pre-allocated buffers. It is the
+    engine of the :class:`libertem_blobfinder.udf.FullFrameCorrelationUDF` for stand-alone
+    use independent of LiberTEM.
+
+    Parameters
+    ----------
+    template : numpy.ndarray
+        Real Fourier transfrom of the correlation pattern.
+        The source pattern should have size (2 * crop_size, 2 * crop_size). Please note that
+        the real Fourier transform (fft.rfft2) of the source pattern has a different shape!
+    crop_size : int
+        Half the size of the correlation pattern. Given as a parameter since real Fourier
+        transform changes the size.
+    frame : np.ndarray
+        Frame data. Currently, only real values are supported.
+    peaks : np.ndarray
+        List of peaks of shape (n_peaks, 2)
+    out_centers : np.ndarray, optional
+        Output buffer for center positions of shape (n_peaks, 2) and integer dtype. Will be
+        allocated if needed.
+    out_refineds : np.ndarray, optional
+        Output buffer for refined center positions of shape (n_peaks, 2) and float dtype. Will be
+        allocated if needed.
+    out_heights : np.ndarray, optional
+        Output buffer for peak height in log scaled frame. Shape (n_peaks, ) and float dtype. Will
+        be allocated if needed.
+    out_elevations : np.ndarray, optional
+        Output buffer for peak elevation in log scaled frame. Shape (n_peaks, ) and float dtype.
+        Will be allocated if needed.
+    frame_buf : np.ndarray, optional
+        Optional aligned buffer for pyfftw. Shape of a frame and float dtype. :meth:`zero` can be
+        used.
+    buf_count : int, optional
+        Number of peaks to process per outer loop iteration. This allows optimization of L3 cache
+        efficiency and can usually be left at its default value.
+
+
+    Returns
+    -------
+    centers : np.ndarray
+        Center positions of shape (n_peaks, 2) and integer dtype.
+    refineds : np.ndarray
+        Refined center positions of shape (n_peaks, 2) and float dtype.
+    heights : np.ndarray
+        Peak height in log scaled frame. Shape (n_peaks, ) and float dtype.
+    elevations : np.ndarray
+        Peak elevation in log scaled frame. Shape (n_peaks, ) and float dtype
+
+    Example
+    -------
+
+    >>> frames, indices, peaks = libertem.utils.generate.cbed_frame()
+    >>> pattern = libertem_blobfinder.patterns.RadialGradient(radius=4)
+    >>> crop_size = pattern.get_crop_size()
+    >>> template = pattern.get_template(sig_shape=frames[0].shape)
+    >>>
+    >>> centers = np.zeros((len(frames), len(peaks), 2), dtype=np.uint16)
+    >>> refineds = np.zeros((len(frames), len(peaks), 2), dtype=np.float32)
+    >>> heights = np.zeros((len(frames), len(peaks)), dtype=np.float32)
+    >>> elevations = np.zeros((len(frames), len(peaks)), dtype=np.float32)
+    >>>
+    >>> frame_buf = libertem_blobfinder.correlation.zeros(frames[0].shape, dtype=np.float32)
+    >>>
+    >>> for i, f in enumerate(frames):
+    ...     _ = process_frame_full(
+    ...         template=template, crop_size=crop_size,
+    ...         frame=f, peaks=peaks.astype(np.int32),
+    ...         out_centers=centers[i], out_refineds=refineds[i],
+    ...         out_heights=heights[i], out_elevations=elevations[i],
+    ...         frame_buf=frame_buf
+    ...     )
+    >>> assert np.allclose(refineds[0], peaks, atol=0.1)
+    '''
+    if out_centers is None:
+        out_centers = np.zeros((len(peaks), 2), dtype=np.uint16)
+    if out_refineds is None:
+        out_refineds = np.zeros((len(peaks), 2), dtype=np.float32)
+    if out_heights is None:
+        out_heights = np.zeros(len(peaks), dtype=np.float32)
+    if out_elevations is None:
+        out_elevations = np.zeros(len(peaks), dtype=np.float32)
+    if frame_buf is None:
+        frame_buf = zeros(shape=frame.shape, dtype=np.result_type(frame.dtype, np.float32))
+    if buf_count is None:
+        buf_count = get_buf_count(crop_size, len(peaks), frame_buf.dtype)
+
+    log_scale(frame, out=frame_buf)
+    spec_part = fft.rfft2(frame_buf)
+    corrspec = template * spec_part
+    corr = fft.fftshift(fft.irfft2(corrspec))
+    crop_bufs = np.zeros((buf_count, 2 * crop_size, 2 * crop_size), dtype=corr.dtype)
+    block_count = (len(peaks) - 1) // buf_count + 1
+    for block in range(block_count):
+        start = block * buf_count
+        stop = min(len(peaks), (block + 1) * buf_count)
+        size = stop - start
+        crop_disks_from_frame(
+            peaks=peaks[start:stop], frame=corr, crop_size=crop_size,
+            out_crop_bufs=crop_bufs[:size]
+        )
+        evaluate_correlations(
+            corrs=crop_bufs[:size], peaks=peaks[start:stop], crop_size=crop_size,
+            out_centers=out_centers[start:stop], out_refineds=out_refineds[start:stop],
+            out_heights=out_heights[start:stop], out_elevations=out_elevations[start:stop]
+        )
+    return (out_centers, out_refineds, out_heights, out_elevations)
 
 
 class FullFrameCorrelationUDF(CorrelationUDF):
@@ -411,15 +631,13 @@ class FullFrameCorrelationUDF(CorrelationUDF):
         mask = self.get_pattern()
         n_peaks = len(self.params.peaks)
         template = mask.get_template(sig_shape=self.meta.dataset_shape.sig)
-        dtype = np.float32
+        dtype = np.result_type(self.meta.input_dtype, np.float32)
         frame_buf = zeros(shape=self.meta.dataset_shape.sig, dtype=dtype)
         crop_size = mask.get_crop_size()
-        full_size = (2 * crop_size)**2 * dtype(1).nbytes
-        buf_count = min(max(1, self.limit // full_size), n_peaks)
         kwargs = {
             'template': template,
             'frame_buf': frame_buf,
-            'buf_count': buf_count,
+            'buf_count': get_buf_count(crop_size, n_peaks, dtype, self.limit),
         }
         return kwargs
 
@@ -434,31 +652,19 @@ class FullFrameCorrelationUDF(CorrelationUDF):
 
     def process_frame(self, frame):
         match_pattern = self.get_pattern()
-        peaks = self.get_peaks()
-        crop_size = match_pattern.get_crop_size()
-        template = self.get_template()
         (centers, refineds, peak_values, peak_elevations) = self.output_buffers()
-        frame_buf = self.task_data.frame_buf
-        log_scale(frame, out=frame_buf)
-        spec_part = fft.rfft2(frame_buf)
-        corrspec = template * spec_part
-        corr = fft.fftshift(fft.irfft2(corrspec))
-        buf_count = self.task_data.buf_count
-        crop_bufs = np.zeros((buf_count, 2 * crop_size, 2 * crop_size), dtype=np.float32)
-        block_count = (len(peaks) - 1) // buf_count + 1
-        for block in range(block_count):
-            start = block * buf_count
-            stop = min(len(peaks), (block + 1) * buf_count)
-            size = stop - start
-            crop_disks_from_frame(
-                peaks=peaks[start:stop], frame=corr, crop_size=crop_size,
-                out_crop_bufs=crop_bufs[:size]
-            )
-            evaluate_correlations(
-                corrs=crop_bufs[:size], peaks=peaks[start:stop], crop_size=crop_size,
-                out_centers=centers[start:stop], out_refineds=refineds[start:stop],
-                out_heights=peak_values[start:stop], out_elevations=peak_elevations[start:stop]
-            )
+        process_frame_full(
+            template=self.get_template(),
+            crop_size=match_pattern.get_crop_size(),
+            frame=frame,
+            peaks=self.get_peaks(),
+            out_centers=centers,
+            out_refineds=refineds,
+            out_heights=peak_values,
+            out_elevations=peak_elevations,
+            frame_buf=self.task_data.frame_buf,
+            buf_count=self.task_data.buf_count,
+        )
 
 
 class SparseCorrelationUDF(CorrelationUDF):

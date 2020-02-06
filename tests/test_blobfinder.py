@@ -25,9 +25,15 @@ def test_refinement():
         (0, 2, 0, 0, 0, -10)
     ])
 
-    assert np.allclose(blobfinder.correlation.refine_center(center=(1, 1), r=1, corrmap=data), (1, 1))
-    assert np.allclose(blobfinder.correlation.refine_center(center=(2, 2), r=1, corrmap=data), (1, 1))
-    assert np.allclose(blobfinder.correlation.refine_center(center=(1, 4), r=1, corrmap=data), (0.5, 4.5))
+    assert np.allclose(
+        blobfinder.correlation.refine_center(center=(1, 1), r=1, corrmap=data), (1, 1)
+    )
+    assert np.allclose(
+        blobfinder.correlation.refine_center(center=(2, 2), r=1, corrmap=data), (1, 1)
+    )
+    assert np.allclose(
+        blobfinder.correlation.refine_center(center=(1, 4), r=1, corrmap=data), (0.5, 4.5)
+    )
 
     y, x = (4, 1)
     ry, rx = blobfinder.correlation.refine_center(center=(y, x), r=1, corrmap=data)
@@ -596,3 +602,97 @@ def test_correlation_method_fullframe(lt_ctx, cls, dtype, kwargs):
         # plt.show()
 
         assert np.allclose(res['refineds'].data[0], peaks, atol=0.5)
+
+
+@pytest.mark.with_numba
+def test_standalone_fast():
+    shape = np.array([128, 128])
+    zero = shape / 2 + np.random.uniform(-1, 1, size=2)
+    a = np.array([34.3, 0.]) + np.random.uniform(-1, 1, size=2)
+    b = np.array([0., 42.19]) + np.random.uniform(-1, 1, size=2)
+    indices = np.mgrid[-2:3, -2:3]
+    indices = np.concatenate(indices.T)
+
+    radius = 8
+
+    data, indices, peaks = cbed_frame(*shape, zero, a, b, indices, radius)
+
+    template = m.radial_gradient(
+        centerX=radius+1,
+        centerY=radius+1,
+        imageSizeX=2*radius+2,
+        imageSizeY=2*radius+2,
+        radius=radius
+    )
+
+    match_patterns = [
+        blobfinder.RadialGradient(radius=radius, search=radius*1.5),
+        blobfinder.BackgroundSubtraction(radius=radius, radius_outer=radius*1.5, search=radius*1.8),
+        blobfinder.RadialGradientBackgroundSubtraction(
+            radius=radius, radius_outer=radius*1.5, search=radius*1.8),
+        blobfinder.UserTemplate(template=template, search=radius*1.5)
+    ]
+
+    print("zero: ", zero)
+    print("a: ", a)
+    print("b: ", b)
+
+    for match_pattern in match_patterns:
+        print("refining using template %s" % type(match_pattern))
+        crop_size = match_pattern.get_crop_size()
+        (centers, refineds, heights, elevations) = blobfinder.correlation.process_frame_fast(
+            template=match_pattern.get_template(sig_shape=(2 * crop_size, 2 * crop_size)),
+            crop_size=crop_size,
+            frame=data[0], peaks=peaks.astype(np.int32),
+        )
+
+        print(peaks - refineds)
+
+        assert np.allclose(refineds, peaks, atol=0.5)
+
+
+@pytest.mark.with_numba
+def test_standalone_full():
+    shape = np.array([128, 128])
+    zero = shape / 2 + np.random.uniform(-1, 1, size=2)
+    a = np.array([34.3, 0.]) + np.random.uniform(-1, 1, size=2)
+    b = np.array([0., 42.19]) + np.random.uniform(-1, 1, size=2)
+    indices = np.mgrid[-2:3, -2:3]
+    indices = np.concatenate(indices.T)
+
+    radius = 8
+
+    data, indices, peaks = cbed_frame(*shape, zero, a, b, indices, radius)
+
+    template = m.radial_gradient(
+        centerX=radius+1,
+        centerY=radius+1,
+        imageSizeX=2*radius+2,
+        imageSizeY=2*radius+2,
+        radius=radius
+    )
+
+    match_patterns = [
+        blobfinder.RadialGradient(radius=radius, search=radius*1.5),
+        blobfinder.BackgroundSubtraction(radius=radius, radius_outer=radius*1.5, search=radius*1.8),
+        blobfinder.RadialGradientBackgroundSubtraction(
+            radius=radius, radius_outer=radius*1.5, search=radius*1.8),
+        blobfinder.UserTemplate(template=template, search=radius*1.5)
+    ]
+
+    print("zero: ", zero)
+    print("a: ", a)
+    print("b: ", b)
+
+    for match_pattern in match_patterns:
+        print("refining using template %s" % type(match_pattern))
+        crop_size = match_pattern.get_crop_size()
+        (centers, refineds, heights, elevations) = blobfinder.correlation.process_frame_full(
+            template=match_pattern.get_template(sig_shape=shape),
+            crop_size=crop_size,
+            frame=data[0], peaks=peaks.astype(np.int32),
+        )
+
+        print(peaks - refineds)
+
+        assert np.allclose(refineds, peaks, atol=0.5)
