@@ -3,8 +3,9 @@ from libertem.utils import frame_peaks
 
 import libertem.analysis.gridmatching as grm
 
-from .patterns import MatchPattern
-from .correlation import FastCorrelationUDF, SparseCorrelationUDF, FullFrameCorrelationUDF
+from libertem_blobfinder.common.patterns import MatchPattern
+from libertem_blobfinder.udf.correlation import FastCorrelationUDF,\
+    SparseCorrelationUDF, FullFrameCorrelationUDF
 
 # FIXME There's work on flexible FFT backends in scipy
 # https://github.com/scipy/scipy/wiki/GSoC-2019-project-ideas#revamp-scipyfftpack
@@ -232,7 +233,7 @@ def run_refine(
     >>> (result, used_indices) = run_refine(
     ...     ctx, dataset,
     ...     zero=(64, 64), a=(1, 0), b=(0, 1),
-    ...     match_pattern=libertem_blobfinder.RadialGradient(radius=4),
+    ...     match_pattern=libertem_blobfinder.common.patterns.RadialGradient(radius=4),
     ...     matcher=grm.Matcher()
     ... )
     >>> result['centers'].data  #doctest: +ELLIPSIS
