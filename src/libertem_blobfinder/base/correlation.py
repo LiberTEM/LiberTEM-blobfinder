@@ -106,6 +106,24 @@ def peak_elevation(center, corrmap, height, r_min=1.5, r_max=np.float('inf')):
 
 
 def do_correlations(template, crop_parts):
+    '''
+    Calculate the correlation of the pre-calculated template with a stack
+    of cropped peaks using fast correlation.
+
+    Parameters
+    ----------
+    template : numpy.ndarray
+        Real Fourier transform of the correlation pattern.
+        The source pattern should have the same size as the cropped parts. Please note that
+        the real Fourier transform (fft.rfft2) of the source pattern has a different shape!
+    crop_parts : numpy.ndarray
+        Stack of peaks cropped from the frame.
+
+    Returns
+    -------
+    corrs : numpy.ndarray
+        Correlation of the correlation pattern and the peaks.
+    '''
     spec_parts = fft.rfft2(crop_parts)
     corrspecs = template * spec_parts
     corrs = fft.fftshift(fft.irfft2(corrspecs), axes=(-1, -2))
@@ -179,12 +197,53 @@ def _shift(relative_center, anchor, crop_size):
 
 
 def get_buf_count(crop_size, n_peaks, dtype, limit=2**19):
+    '''
+    Calculate the optimal number of peaks in a stack to fit
+    within the limit.
+
+    Parameters
+    ----------
+    crop_size : int
+        The cropped parts will have size (2 * crop-size, 2 * crop_size)
+    n_peaks : int
+        Number of peaks
+    dtype : numpy.dtype
+        dtype of the data for size calculation
+    limit : int, optional
+        Upper limit, default 1/2 MB to be L3 cache friendly
+
+    Returns
+    -------
+    int
+    '''
     dtype = np.dtype(dtype)
     full_size = (2 * crop_size)**2 * dtype.itemsize
     return min(max(1, limit // full_size), n_peaks)
 
 
 def allocate_crop_bufs(crop_size, n_peaks, dtype, limit=2**19):
+    '''
+    Allocate buffer for stack of cropped peaks
+
+    The size is optimized to fit within :code:`limit`. An aligned buffer for the FFT
+    back-end is created if possible.
+
+    Parameters
+    ----------
+    crop_size : int
+        The cropped parts will have size (2 * crop-size, 2 * crop_size)
+    n_peaks : int
+        Number of peaks
+    dtype : numpy.dtype
+        dtype of the buffer
+    limit : int, optional
+        Upper limit, default 1/2 MB to be L3 cache friendly
+
+    Returns
+    -------
+    crop_bufs: np.ndarray
+        Shape (n, 2*crop_size, 2*crop_size)
+    '''
     buf_count = get_buf_count(crop_size, n_peaks, dtype, limit)
     crop_bufs = zeros((buf_count, 2 * crop_size, 2 * crop_size), dtype=dtype)
     return crop_bufs
@@ -238,8 +297,11 @@ def process_frame_fast(template, crop_size, frame, peaks,
     Example
     -------
 
+    >>> from libertem_blobfinder.common.patterns import RadialGradient
+    >>> from libertem_blobfinder.base.correlation import allocate_crop_bufs
+    >>>
     >>> frames, indices, peaks = libertem.utils.generate.cbed_frame(radius=4)
-    >>> pattern = libertem_blobfinder.common.patterns.RadialGradient(radius=4)
+    >>> pattern = RadialGradient(radius=4)
     >>> crop_size = pattern.get_crop_size()
     >>> template = pattern.get_template(sig_shape=(2 * crop_size, 2 * crop_size))
     >>>
@@ -248,7 +310,7 @@ def process_frame_fast(template, crop_size, frame, peaks,
     >>> heights = np.zeros((len(frames), len(peaks)), dtype=np.float32)
     >>> elevations = np.zeros((len(frames), len(peaks)), dtype=np.float32)
     >>>
-    >>> crop_bufs = libertem_blobfinder.base.correlation.allocate_crop_bufs(crop_size, len(peaks), frames.dtype)
+    >>> crop_bufs = allocate_crop_bufs(crop_size, len(peaks), frames.dtype)
     >>>
     >>> for i, f in enumerate(frames):
     ...     process_frame_fast(
@@ -334,8 +396,11 @@ def process_frame_full(template, crop_size, frame, peaks,
     Example
     -------
 
+    >>> from libertem_blobfinder.common.patterns import RadialGradient
+    >>> from libertem_blobfinder.base.correlation import get_buf_count, zeros
+    >>>
     >>> frames, indices, peaks = libertem.utils.generate.cbed_frame()
-    >>> pattern = libertem_blobfinder.common.patterns.RadialGradient(radius=4)
+    >>> pattern = RadialGradient(radius=4)
     >>> crop_size = pattern.get_crop_size()
     >>> template = pattern.get_template(sig_shape=frames[0].shape)
     >>>
@@ -344,8 +409,8 @@ def process_frame_full(template, crop_size, frame, peaks,
     >>> heights = np.zeros((len(frames), len(peaks)), dtype=np.float32)
     >>> elevations = np.zeros((len(frames), len(peaks)), dtype=np.float32)
     >>>
-    >>> frame_buf = libertem_blobfinder.base.correlation.zeros(frames[0].shape, dtype=np.float32)
-    >>> buf_count = libertem_blobfinder.base.correlation.get_buf_count(crop_size, len(peaks), frame_buf.dtype)
+    >>> frame_buf = zeros(frames[0].shape, dtype=np.float32)
+    >>> buf_count = get_buf_count(crop_size, len(peaks), frame_buf.dtype)
     >>>
     >>> for i, f in enumerate(frames):
     ...     process_frame_full(

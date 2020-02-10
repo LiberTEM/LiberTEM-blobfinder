@@ -1,7 +1,4 @@
-import functools
-
 import numpy as np
-import scipy.ndimage
 import pytest
 
 import libertem.analysis.gridmatching as grm
@@ -9,8 +6,7 @@ import libertem.masks as m
 from libertem.utils.generate import cbed_frame
 from libertem.io.dataset.memory import MemoryDataSet
 
-from libertem_blobfinder import base, common, udf
-import libertem_blobfinder.base.correlation
+from libertem_blobfinder import common, udf
 import libertem_blobfinder.common.correlation
 import libertem_blobfinder.common.patterns
 import libertem_blobfinder.common.utils
@@ -18,38 +14,6 @@ import libertem_blobfinder.udf.refinement
 import libertem_blobfinder.udf.correlation  # noqa F401
 
 from utils import _mk_random
-
-
-@pytest.mark.with_numba
-def test_refinement():
-    data = np.array([
-        (0, 0, 0, 0, 0, 1),
-        (0, 1, 0, 0, 1, 0),
-        (0, 0, 0, 0, 0, 0),
-        (0, 0, 0, 0, 0, 0),
-        (2, 3, 0, 0, 0, 0),
-        (0, 2, 0, 0, 0, -10)
-    ])
-
-    assert np.allclose(
-        base.correlation.refine_center(center=(1, 1), r=1, corrmap=data), (1, 1)
-    )
-    assert np.allclose(
-        base.correlation.refine_center(center=(2, 2), r=1, corrmap=data), (1, 1)
-    )
-    assert np.allclose(
-        base.correlation.refine_center(center=(1, 4), r=1, corrmap=data), (0.5, 4.5)
-    )
-
-    y, x = (4, 1)
-    ry, rx = base.correlation.refine_center(center=(y, x), r=1, corrmap=data)
-    assert (ry > y) and (ry < (y + 1))
-    assert (rx < x) and (rx > (x - 1))
-
-    y, x = (4, 4)
-    ry, rx = base.correlation.refine_center(center=(y, x), r=1, corrmap=data)
-    assert (ry < y) and (ry > (y - 1))
-    assert (rx < x) and (rx > (x - 1))
 
 
 @pytest.mark.with_numba
@@ -64,68 +28,6 @@ def test_smoke(lt_ctx):
     udf.correlation.run_blobfinder(
         ctx=lt_ctx, dataset=dataset, num_peaks=1, match_pattern=match_pattern
     )
-
-
-@pytest.mark.with_numba
-def test_crop_disks_from_frame():
-    match_pattern = common.patterns.RadialGradient(radius=2, search=2)
-    crop_size = match_pattern.get_crop_size()
-    peaks = [
-        [0, 0],
-        [2, 2],
-        [5, 5],
-    ]
-    frame = _mk_random(size=(6, 6), dtype="float32")
-    crop_buf = np.zeros((len(peaks), 2*crop_size, 2*crop_size))
-    base.correlation.crop_disks_from_frame(
-        peaks=np.array(peaks),
-        frame=frame,
-        crop_size=crop_size,
-        out_crop_bufs=crop_buf
-    )
-
-    #
-    # how is the region around the peak cropped? like this (x denotes the peak position),
-    # this is an example for radius 2, padding 0 -> crop_size = 4
-    #
-    # ---------
-    # | | | | |
-    # |-|-|-|-|
-    # | | | | |
-    # |-|-|-|-|
-    # | | |x| |
-    # |-|-|-|-|
-    # | | | | |
-    # ---------
-
-    # first peak: top-leftmost; only the bottom right part of the crop_buf should be filled:
-    assert np.all(crop_buf[0] == [
-        [0, 0,           0,          0],
-        [0, 0,           0,          0],
-        [0, 0, frame[0, 0], frame[0, 1]],
-        [0, 0, frame[1, 0], frame[1, 1]],
-    ])
-
-    # second peak: the whole crop area fits into the frame -> use full crop_buf
-    assert np.all(crop_buf[1] == frame[0:4, 0:4])
-
-    # third peak: bottom-rightmost; almost-symmetric to first case
-    print(crop_buf[2])
-    assert np.all(crop_buf[2] == [
-        [frame[3, 3], frame[3, 4], frame[3, 5], 0],
-        [frame[4, 3], frame[4, 4], frame[4, 5], 0],
-        [frame[5, 3], frame[5, 4], frame[5, 5], 0],
-        [          0,           0,           0, 0],
-    ])
-
-
-@pytest.mark.with_numba
-def test_com():
-    data = np.random.random((7, 9))
-    ref = scipy.ndimage.measurements.center_of_mass(data)
-    com = base.correlation.center_of_mass(data)
-    print(ref, com, np.array(ref) - np.array(com))
-    assert np.allclose(ref, com)
 
 
 def test_run_refine_fastmatch(lt_ctx):
@@ -388,104 +290,6 @@ def test_run_refine_blocktests(lt_ctx, cls):
         assert np.allclose(res['refineds'].data[0], peaks, atol=0.5)
 
 
-def test_custom_template():
-    template = m.radial_gradient(centerX=10, centerY=10, imageSizeX=21, imageSizeY=23, radius=7)
-    custom = common.patterns.UserTemplate(template=template, search=18)
-
-    assert custom.get_crop_size() == 18
-
-    same = custom.get_mask((23, 21))
-    larger = custom.get_mask((25, 23))
-    smaller = custom.get_mask((10, 10))
-
-    assert np.allclose(same, template)
-    assert np.allclose(larger[1:-1, 1:-1], template)
-    assert np.allclose(template[6:-7, 5:-6], smaller)
-
-
-def test_custom_template_fuzz():
-    for i in range(10):
-        integers = np.arange(1, 15)
-        center_y = np.random.choice(integers)
-        center_x = np.random.choice(integers)
-
-        size_y = np.random.choice(integers)
-        size_x = np.random.choice(integers)
-
-        radius = np.random.choice(integers)
-        search = np.random.choice(integers)
-
-        mask_y = np.random.choice(integers)
-        mask_x = np.random.choice(integers)
-
-        print("center_y:", center_y)
-        print("center_x:", center_x)
-        print("size_y:", size_y)
-        print("size_x:", size_x)
-        print("radius:", radius)
-        print("search:", search)
-        print("mask_y:", mask_y)
-        print("mask_x:", mask_x)
-
-        template = m.radial_gradient(
-            centerX=center_x, centerY=center_y,
-            imageSizeX=size_x, imageSizeY=size_y,
-            radius=radius
-        )
-        custom = common.patterns.UserTemplate(template=template, search=search)
-
-        mask = custom.get_mask((mask_y, mask_x))  # noqa
-
-
-def test_featurevector(lt_ctx):
-    shape = np.array([128, 128])
-    zero = shape // 2
-    a = np.array([24, 0.])
-    b = np.array([0., 30])
-    indices = np.mgrid[-2:3, -2:3]
-    indices = np.concatenate(indices.T)
-
-    radius = 5
-    radius_outer = 10
-
-    template = m.background_subtraction(
-        centerX=radius_outer + 1,
-        centerY=radius_outer + 1,
-        imageSizeX=radius_outer*2 + 2,
-        imageSizeY=radius_outer*2 + 2,
-        radius=radius_outer,
-        radius_inner=radius + 1,
-        antialiased=False
-    )
-
-    data, indices, peaks = cbed_frame(*shape, zero, a, b, indices, radius, all_equal=True)
-
-    dataset = MemoryDataSet(data=data, tileshape=(1, *shape),
-                            num_partitions=1, sig_dims=2)
-
-    match_pattern = common.patterns.UserTemplate(template=template)
-
-    stack = functools.partial(
-        common.utils.feature_vector,
-        imageSizeX=shape[1],
-        imageSizeY=shape[0],
-        peaks=peaks,
-        match_pattern=match_pattern,
-
-    )
-
-    job = lt_ctx.create_mask_job(
-        dataset=dataset, factories=stack, mask_count=len(peaks), mask_dtype=np.float32
-    )
-    res = lt_ctx.run(job)
-
-    peak_data, _, _ = cbed_frame(*shape, zero, a, b, np.array([(0, 0)]), radius, all_equal=True)
-    peak_sum = peak_data.sum()
-
-    assert np.allclose(res.sum(), data.sum())
-    assert np.allclose(res, peak_sum)
-
-
 @pytest.mark.with_numba
 @pytest.mark.parametrize(
     "cls,dtype,kwargs",
@@ -609,95 +413,3 @@ def test_correlation_method_fullframe(lt_ctx, cls, dtype, kwargs):
         # plt.show()
 
         assert np.allclose(res['refineds'].data[0], peaks, atol=0.5)
-
-
-@pytest.mark.with_numba
-def test_standalone_fast():
-    shape = np.array([128, 128])
-    zero = shape / 2 + np.random.uniform(-1, 1, size=2)
-    a = np.array([34.3, 0.]) + np.random.uniform(-1, 1, size=2)
-    b = np.array([0., 42.19]) + np.random.uniform(-1, 1, size=2)
-    indices = np.mgrid[-2:3, -2:3]
-    indices = np.concatenate(indices.T)
-
-    radius = 8
-
-    data, indices, peaks = cbed_frame(*shape, zero, a, b, indices, radius)
-
-    template = m.radial_gradient(
-        centerX=radius+1,
-        centerY=radius+1,
-        imageSizeX=2*radius+2,
-        imageSizeY=2*radius+2,
-        radius=radius
-    )
-
-    match_patterns = [
-        common.patterns.RadialGradient(radius=radius, search=radius*1.5),
-        common.patterns.BackgroundSubtraction(
-            radius=radius, radius_outer=radius*1.5, search=radius*1.8),
-        common.patterns.RadialGradientBackgroundSubtraction(
-            radius=radius, radius_outer=radius*1.5, search=radius*1.8),
-        common.patterns.UserTemplate(template=template, search=radius*1.5)
-    ]
-
-    print("zero: ", zero)
-    print("a: ", a)
-    print("b: ", b)
-
-    for match_pattern in match_patterns:
-        print("refining using template %s" % type(match_pattern))
-        (centers, refineds, heights, elevations) = common.correlation.process_frames_fast(
-            pattern=match_pattern,
-            frames=data, peaks=peaks.astype(np.int32),
-        )
-
-        print(peaks - refineds)
-
-        assert np.allclose(refineds[0], peaks, atol=0.5)
-
-
-@pytest.mark.with_numba
-def test_standalone_full():
-    shape = np.array([128, 128])
-    zero = shape / 2 + np.random.uniform(-1, 1, size=2)
-    a = np.array([34.3, 0.]) + np.random.uniform(-1, 1, size=2)
-    b = np.array([0., 42.19]) + np.random.uniform(-1, 1, size=2)
-    indices = np.mgrid[-2:3, -2:3]
-    indices = np.concatenate(indices.T)
-
-    radius = 8
-
-    data, indices, peaks = cbed_frame(*shape, zero, a, b, indices, radius)
-
-    template = m.radial_gradient(
-        centerX=radius+1,
-        centerY=radius+1,
-        imageSizeX=2*radius+2,
-        imageSizeY=2*radius+2,
-        radius=radius
-    )
-
-    match_patterns = [
-        common.patterns.RadialGradient(radius=radius, search=radius*1.5),
-        common.patterns.BackgroundSubtraction(
-            radius=radius, radius_outer=radius*1.5, search=radius*1.8),
-        common.patterns.RadialGradientBackgroundSubtraction(
-            radius=radius, radius_outer=radius*1.5, search=radius*1.8),
-        common.patterns.UserTemplate(template=template, search=radius*1.5)
-    ]
-
-    print("zero: ", zero)
-    print("a: ", a)
-    print("b: ", b)
-
-    for match_pattern in match_patterns:
-        print("refining using template %s" % type(match_pattern))
-        (centers, refineds, heights, elevations) = common.correlation.process_frames_full(
-            pattern=match_pattern,
-            frames=data, peaks=peaks.astype(np.int32),
-        )
-
-        print(peaks - refineds)
-
-        assert np.allclose(refineds[0], peaks, atol=0.5)

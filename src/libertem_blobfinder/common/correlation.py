@@ -69,10 +69,14 @@ def get_peaks(sum_result, match_pattern: MatchPattern, num_peaks):
 
 def process_frames_fast(pattern: MatchPattern, frames, peaks):
     '''
-    Find the parameters of peaks in a diffraction pattern by correlation with a template.
+    Find the parameters of peaks in a diffraction pattern by correlation with a match pattern.
 
     This method crops regions of interest around the peaks from the frames before correlation,
     which is usually fastest for a moderate amount of moderately sized peaks per frame.
+
+    .. note::
+        :class:`~libertem_blobfinder.udf.correlation.FastCorrelationUDF` is a
+        parallelized, distributed version for large-scale data.
 
     Parameters
     ----------
@@ -129,10 +133,15 @@ def process_frames_fast(pattern: MatchPattern, frames, peaks):
 
 def process_frames_full(pattern: MatchPattern, frames, peaks):
     '''
-    Find the parameters of peaks in a diffraction pattern by correlation with a template.
+    Find the parameters of peaks in a diffraction pattern by correlation with a match pattern.
 
     This method crops regions of interest around the peaks after correlation,
     which can be faster for many peaks on smaller frames.
+
+    .. note::
+        :class:`~libertem_blobfinder.udf.correlation.FullFrameCorrelationUDF` is a
+        parallelized, distributed version for large-scale data.
+
 
     Parameters
     ----------
