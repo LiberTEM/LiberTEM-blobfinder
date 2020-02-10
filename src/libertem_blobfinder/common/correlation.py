@@ -161,7 +161,8 @@ def process_frames_full(pattern: MatchPattern, frames, peaks):
     >>> pattern = libertem_blobfinder.common.patterns.RadialGradient(radius=4)
     >>> (centers, refineds, heights, elevations) = process_frames_full(
     ...     pattern=pattern,
-    ...     frames=frames, peaks=peaks.astype(np.int32)
+    ...     frames=frames,
+    ...     peaks=peaks.astype(np.int32)
     ... )
     >>> assert np.allclose(refineds[0], peaks, atol=0.1)
     '''

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import libertem.masks as masks
 import libertem.analysis.gridmatching as grm
 
-from .patterns import MatchPattern
+from libertem_blobfinder.common.patterns import MatchPattern
 
 
 def feature_vector(imageSizeX, imageSizeY, peaks, match_pattern: MatchPattern):
