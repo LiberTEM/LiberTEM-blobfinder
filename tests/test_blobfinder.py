@@ -4,12 +4,12 @@ import numpy as np
 import scipy.ndimage
 import pytest
 
-import libertem_blobfinder as blobfinder
 import libertem.analysis.gridmatching as grm
 import libertem.masks as m
 from libertem.utils.generate import cbed_frame
-
 from libertem.io.dataset.memory import MemoryDataSet
+
+from libertem_blobfinder import base, common, udf
 
 from utils import _mk_random
 
@@ -26,22 +26,22 @@ def test_refinement():
     ])
 
     assert np.allclose(
-        blobfinder.correlation.refine_center(center=(1, 1), r=1, corrmap=data), (1, 1)
+        base.correlation.refine_center(center=(1, 1), r=1, corrmap=data), (1, 1)
     )
     assert np.allclose(
-        blobfinder.correlation.refine_center(center=(2, 2), r=1, corrmap=data), (1, 1)
+        base.correlation.refine_center(center=(2, 2), r=1, corrmap=data), (1, 1)
     )
     assert np.allclose(
-        blobfinder.correlation.refine_center(center=(1, 4), r=1, corrmap=data), (0.5, 4.5)
+        base.correlation.refine_center(center=(1, 4), r=1, corrmap=data), (0.5, 4.5)
     )
 
     y, x = (4, 1)
-    ry, rx = blobfinder.correlation.refine_center(center=(y, x), r=1, corrmap=data)
+    ry, rx = base.correlation.refine_center(center=(y, x), r=1, corrmap=data)
     assert (ry > y) and (ry < (y + 1))
     assert (rx < x) and (rx > (x - 1))
 
     y, x = (4, 4)
-    ry, rx = blobfinder.correlation.refine_center(center=(y, x), r=1, corrmap=data)
+    ry, rx = base.correlation.refine_center(center=(y, x), r=1, corrmap=data)
     assert (ry < y) and (ry > (y - 1))
     assert (rx < x) and (rx > (x - 1))
 
@@ -54,15 +54,15 @@ def test_smoke(lt_ctx):
     data = _mk_random(size=(16 * 16, 16, 16), dtype="float32")
     dataset = MemoryDataSet(data=data, tileshape=(1, 16, 16),
                             num_partitions=2, sig_dims=2)
-    match_pattern = blobfinder.RadialGradient(radius=4)
-    blobfinder.run_blobfinder(
+    match_pattern = common.patterns.RadialGradient(radius=4)
+    udf.correlation.run_blobfinder(
         ctx=lt_ctx, dataset=dataset, num_peaks=1, match_pattern=match_pattern
     )
 
 
 @pytest.mark.with_numba
 def test_crop_disks_from_frame():
-    match_pattern = blobfinder.RadialGradient(radius=2, search=2)
+    match_pattern = common.patterns.RadialGradient(radius=2, search=2)
     crop_size = match_pattern.get_crop_size()
     peaks = [
         [0, 0],
@@ -71,7 +71,7 @@ def test_crop_disks_from_frame():
     ]
     frame = _mk_random(size=(6, 6), dtype="float32")
     crop_buf = np.zeros((len(peaks), 2*crop_size, 2*crop_size))
-    blobfinder.correlation.crop_disks_from_frame(
+    base.correlation.crop_disks_from_frame(
         peaks=np.array(peaks),
         frame=frame,
         crop_size=crop_size,
@@ -117,7 +117,7 @@ def test_crop_disks_from_frame():
 def test_com():
     data = np.random.random((7, 9))
     ref = scipy.ndimage.measurements.center_of_mass(data)
-    com = blobfinder.correlation.center_of_mass(data)
+    com = base.correlation.center_of_mass(data)
     print(ref, com, np.array(ref) - np.array(com))
     assert np.allclose(ref, com)
 
@@ -150,11 +150,11 @@ def test_run_refine_fastmatch(lt_ctx):
     )
 
     match_patterns = [
-        blobfinder.RadialGradient(radius=radius),
-        blobfinder.Circular(radius=radius),
-        blobfinder.BackgroundSubtraction(radius=radius),
-        blobfinder.RadialGradientBackgroundSubtraction(radius=radius),
-        blobfinder.UserTemplate(template=template)
+        common.patterns.RadialGradient(radius=radius),
+        common.patterns.Circular(radius=radius),
+        common.patterns.BackgroundSubtraction(radius=radius),
+        common.patterns.RadialGradientBackgroundSubtraction(radius=radius),
+        common.patterns.UserTemplate(template=template)
     ]
 
     print("zero: ", zero)
@@ -163,7 +163,7 @@ def test_run_refine_fastmatch(lt_ctx):
 
     for match_pattern in match_patterns:
         print("refining using template %s" % type(match_pattern))
-        (res, real_indices) = blobfinder.run_refine(
+        (res, real_indices) = udf.refinement.run_refine(
             ctx=lt_ctx,
             dataset=dataset,
             zero=zero + np.random.uniform(-1, 1, size=2),
@@ -204,7 +204,7 @@ def test_run_refine_affinematch(lt_ctx):
                                     num_partitions=1, sig_dims=2)
 
             matcher = grm.Matcher()
-            match_pattern = blobfinder.RadialGradient(radius=radius)
+            match_pattern = common.patterns.RadialGradient(radius=radius)
 
             affine_indices = peaks - zero
 
@@ -213,7 +213,7 @@ def test_run_refine_affinematch(lt_ctx):
                 aa = np.array([1, 0]) + np.random.uniform(-0.05, 0.05, size=2)
                 bb = np.array([0, 1]) + np.random.uniform(-0.05, 0.05, size=2)
 
-                (res, real_indices) = blobfinder.run_refine(
+                (res, real_indices) = udf.refinement.run_refine(
                     ctx=lt_ctx,
                     dataset=dataset,
                     zero=zzero,
@@ -255,13 +255,13 @@ def test_run_refine_sparse(lt_ctx):
                             num_partitions=1, sig_dims=2)
 
     matcher = grm.Matcher()
-    match_pattern = blobfinder.RadialGradient(radius=radius)
+    match_pattern = common.patterns.RadialGradient(radius=radius)
 
     print("zero: ", zero)
     print("a: ", a)
     print("b: ", b)
 
-    (res, real_indices) = blobfinder.run_refine(
+    (res, real_indices) = udf.refinement.run_refine(
         ctx=lt_ctx,
         dataset=dataset,
         zero=zero + np.random.uniform(-0.5, 0.5, size=2),
@@ -301,13 +301,13 @@ def test_run_refine_fullframe(lt_ctx):
                             num_partitions=1, sig_dims=2)
 
     matcher = grm.Matcher()
-    match_pattern = blobfinder.RadialGradient(radius=radius)
+    match_pattern = common.patterns.RadialGradient(radius=radius)
 
     print("zero: ", zero)
     print("a: ", a)
     print("b: ", b)
 
-    (res, real_indices) = blobfinder.run_refine(
+    (res, real_indices) = udf.refinement.run_refine(
         ctx=lt_ctx,
         dataset=dataset,
         zero=zero + np.random.uniform(-0.5, 0.5, size=2),
@@ -334,8 +334,8 @@ def test_run_refine_fullframe(lt_ctx):
 @pytest.mark.parametrize(
     "cls",
     [
-        blobfinder.FastCorrelationUDF,
-        blobfinder.FullFrameCorrelationUDF,
+        udf.correlation.FastCorrelationUDF,
+        udf.correlation.FullFrameCorrelationUDF,
     ]
 )
 def test_run_refine_blocktests(lt_ctx, cls):
@@ -347,7 +347,7 @@ def test_run_refine_blocktests(lt_ctx, cls):
     indices = np.concatenate(indices.T)
 
     radius = 7
-    match_pattern = blobfinder.RadialGradient(radius=radius)
+    match_pattern = common.patterns.RadialGradient(radius=radius)
     crop_size = match_pattern.get_crop_size()
 
     data, indices, peaks = cbed_frame(
@@ -373,8 +373,8 @@ def test_run_refine_blocktests(lt_ctx, cls):
             len(peaks)*nbytes,
             len(peaks)*nbytes + 1,
             *np.random.randint(low=1, high=len(peaks)*nbytes + 3, size=5)):
-        udf = cls(peaks=peaks, match_pattern=match_pattern, __limit=limit)
-        res = lt_ctx.run_udf(udf=udf, dataset=dataset)
+        m_udf = cls(peaks=peaks, match_pattern=match_pattern, __limit=limit)
+        res = lt_ctx.run_udf(udf=m_udf, dataset=dataset)
         print(limit)
         print(res['refineds'].data[0])
         print(peaks)
@@ -384,7 +384,7 @@ def test_run_refine_blocktests(lt_ctx, cls):
 
 def test_custom_template():
     template = m.radial_gradient(centerX=10, centerY=10, imageSizeX=21, imageSizeY=23, radius=7)
-    custom = blobfinder.UserTemplate(template=template, search=18)
+    custom = common.patterns.UserTemplate(template=template, search=18)
 
     assert custom.get_crop_size() == 18
 
@@ -426,7 +426,7 @@ def test_custom_template_fuzz():
             imageSizeX=size_x, imageSizeY=size_y,
             radius=radius
         )
-        custom = blobfinder.UserTemplate(template=template, search=search)
+        custom = common.patterns.UserTemplate(template=template, search=search)
 
         mask = custom.get_mask((mask_y, mask_x))  # noqa
 
@@ -457,10 +457,10 @@ def test_featurevector(lt_ctx):
     dataset = MemoryDataSet(data=data, tileshape=(1, *shape),
                             num_partitions=1, sig_dims=2)
 
-    match_pattern = blobfinder.UserTemplate(template=template)
+    match_pattern = common.patterns.UserTemplate(template=template)
 
     stack = functools.partial(
-        blobfinder.feature_vector,
+        common.utils.feature_vector,
         imageSizeX=shape[1],
         imageSizeY=shape[0],
         peaks=peaks,
@@ -484,10 +484,10 @@ def test_featurevector(lt_ctx):
 @pytest.mark.parametrize(
     "cls,dtype,kwargs",
     [
-        (blobfinder.FastCorrelationUDF, np.int, {}),
-        (blobfinder.FastCorrelationUDF, np.float, {}),
-        (blobfinder.SparseCorrelationUDF, np.int, {'steps': 3}),
-        (blobfinder.SparseCorrelationUDF, np.float, {'steps': 3}),
+        (udf.correlation.FastCorrelationUDF, np.int, {}),
+        (udf.correlation.FastCorrelationUDF, np.float, {}),
+        (udf.correlation.SparseCorrelationUDF, np.int, {'steps': 3}),
+        (udf.correlation.SparseCorrelationUDF, np.float, {'steps': 3}),
     ]
 )
 def test_correlation_methods(lt_ctx, cls, dtype, kwargs):
@@ -514,11 +514,11 @@ def test_correlation_methods(lt_ctx, cls, dtype, kwargs):
     )
 
     match_patterns = [
-        blobfinder.RadialGradient(radius=radius),
-        blobfinder.Circular(radius=radius),
-        blobfinder.BackgroundSubtraction(radius=radius),
-        blobfinder.RadialGradientBackgroundSubtraction(radius=radius),
-        blobfinder.UserTemplate(template=template)
+        common.patterns.RadialGradient(radius=radius),
+        common.patterns.Circular(radius=radius),
+        common.patterns.BackgroundSubtraction(radius=radius),
+        common.patterns.RadialGradientBackgroundSubtraction(radius=radius),
+        common.patterns.UserTemplate(template=template)
     ]
 
     print("zero: ", zero)
@@ -527,8 +527,8 @@ def test_correlation_methods(lt_ctx, cls, dtype, kwargs):
 
     for match_pattern in match_patterns:
         print("refining using template %s" % type(match_pattern))
-        udf = cls(match_pattern=match_pattern, peaks=peaks.astype(dtype), **kwargs)
-        res = lt_ctx.run_udf(dataset=dataset, udf=udf)
+        m_udf = cls(match_pattern=match_pattern, peaks=peaks.astype(dtype), **kwargs)
+        res = lt_ctx.run_udf(dataset=dataset, udf=m_udf)
         print(peaks)
         print(res['refineds'].data[0])
         print(peaks - res['refineds'].data[0])
@@ -549,8 +549,8 @@ def test_correlation_methods(lt_ctx, cls, dtype, kwargs):
 @pytest.mark.parametrize(
     "cls,dtype,kwargs",
     [
-        (blobfinder.FullFrameCorrelationUDF, np.int, {}),
-        (blobfinder.FullFrameCorrelationUDF, np.float, {}),
+        (udf.correlation.FullFrameCorrelationUDF, np.int, {}),
+        (udf.correlation.FullFrameCorrelationUDF, np.float, {}),
     ]
 )
 def test_correlation_method_fullframe(lt_ctx, cls, dtype, kwargs):
@@ -577,11 +577,12 @@ def test_correlation_method_fullframe(lt_ctx, cls, dtype, kwargs):
     )
 
     match_patterns = [
-        blobfinder.RadialGradient(radius=radius, search=radius*1.5),
-        blobfinder.BackgroundSubtraction(radius=radius, radius_outer=radius*1.5, search=radius*1.8),
-        blobfinder.RadialGradientBackgroundSubtraction(
+        common.patterns.RadialGradient(radius=radius, search=radius*1.5),
+        common.patterns.BackgroundSubtraction(
             radius=radius, radius_outer=radius*1.5, search=radius*1.8),
-        blobfinder.UserTemplate(template=template, search=radius*1.5)
+        common.patterns.RadialGradientBackgroundSubtraction(
+            radius=radius, radius_outer=radius*1.5, search=radius*1.8),
+        common.patterns.UserTemplate(template=template, search=radius*1.5)
     ]
 
     print("zero: ", zero)
@@ -590,8 +591,8 @@ def test_correlation_method_fullframe(lt_ctx, cls, dtype, kwargs):
 
     for match_pattern in match_patterns:
         print("refining using template %s" % type(match_pattern))
-        udf = cls(match_pattern=match_pattern, peaks=peaks.astype(dtype), **kwargs)
-        res = lt_ctx.run_udf(dataset=dataset, udf=udf)
+        m_udf = cls(match_pattern=match_pattern, peaks=peaks.astype(dtype), **kwargs)
+        res = lt_ctx.run_udf(dataset=dataset, udf=m_udf)
         print(peaks - res['refineds'].data[0])
 
         # import matplotlib.pyplot as plt
@@ -626,11 +627,12 @@ def test_standalone_fast():
     )
 
     match_patterns = [
-        blobfinder.RadialGradient(radius=radius, search=radius*1.5),
-        blobfinder.BackgroundSubtraction(radius=radius, radius_outer=radius*1.5, search=radius*1.8),
-        blobfinder.RadialGradientBackgroundSubtraction(
+        common.patterns.RadialGradient(radius=radius, search=radius*1.5),
+        common.patterns.BackgroundSubtraction(
             radius=radius, radius_outer=radius*1.5, search=radius*1.8),
-        blobfinder.UserTemplate(template=template, search=radius*1.5)
+        common.patterns.RadialGradientBackgroundSubtraction(
+            radius=radius, radius_outer=radius*1.5, search=radius*1.8),
+        common.patterns.UserTemplate(template=template, search=radius*1.5)
     ]
 
     print("zero: ", zero)
@@ -639,16 +641,14 @@ def test_standalone_fast():
 
     for match_pattern in match_patterns:
         print("refining using template %s" % type(match_pattern))
-        crop_size = match_pattern.get_crop_size()
-        (centers, refineds, heights, elevations) = blobfinder.correlation.process_frame_fast(
-            template=match_pattern.get_template(sig_shape=(2 * crop_size, 2 * crop_size)),
-            crop_size=crop_size,
-            frame=data[0], peaks=peaks.astype(np.int32),
+        (centers, refineds, heights, elevations) = common.correlation.process_frames_fast(
+            pattern=match_pattern,
+            frames=data, peaks=peaks.astype(np.int32),
         )
 
         print(peaks - refineds)
 
-        assert np.allclose(refineds, peaks, atol=0.5)
+        assert np.allclose(refineds[0], peaks, atol=0.5)
 
 
 @pytest.mark.with_numba
@@ -673,11 +673,12 @@ def test_standalone_full():
     )
 
     match_patterns = [
-        blobfinder.RadialGradient(radius=radius, search=radius*1.5),
-        blobfinder.BackgroundSubtraction(radius=radius, radius_outer=radius*1.5, search=radius*1.8),
-        blobfinder.RadialGradientBackgroundSubtraction(
+        common.patterns.RadialGradient(radius=radius, search=radius*1.5),
+        common.patterns.BackgroundSubtraction(
             radius=radius, radius_outer=radius*1.5, search=radius*1.8),
-        blobfinder.UserTemplate(template=template, search=radius*1.5)
+        common.patterns.RadialGradientBackgroundSubtraction(
+            radius=radius, radius_outer=radius*1.5, search=radius*1.8),
+        common.patterns.UserTemplate(template=template, search=radius*1.5)
     ]
 
     print("zero: ", zero)
@@ -686,13 +687,11 @@ def test_standalone_full():
 
     for match_pattern in match_patterns:
         print("refining using template %s" % type(match_pattern))
-        crop_size = match_pattern.get_crop_size()
-        (centers, refineds, heights, elevations) = blobfinder.correlation.process_frame_full(
-            template=match_pattern.get_template(sig_shape=shape),
-            crop_size=crop_size,
-            frame=data[0], peaks=peaks.astype(np.int32),
+        (centers, refineds, heights, elevations) = common.correlation.process_frames_full(
+            pattern=match_pattern,
+            frames=data, peaks=peaks.astype(np.int32),
         )
 
         print(peaks - refineds)
 
-        assert np.allclose(refineds, peaks, atol=0.5)
+        assert np.allclose(refineds[0], peaks, atol=0.5)
