@@ -207,7 +207,7 @@ def process_frame_fast(template, crop_size, frame, peaks,
     Parameters
     ----------
     template : numpy.ndarray
-        Real Fourier transfrom of the correlation pattern.
+        Real Fourier transform of the correlation pattern.
         The source pattern should have size (2 * crop_size, 2 * crop_size). Please note that
         the real Fourier transform (fft.rfft2) of the source pattern has a different shape!
     crop_size : int
@@ -238,11 +238,8 @@ def process_frame_fast(template, crop_size, frame, peaks,
     Example
     -------
 
-    >>> import libertem_blobfinder.base as base
-    >>> import libertem_blobfinder.common as common
-    >>>
     >>> frames, indices, peaks = libertem.utils.generate.cbed_frame(radius=4)
-    >>> pattern = common.patterns.RadialGradient(radius=4)
+    >>> pattern = libertem_blobfinder.common.patterns.RadialGradient(radius=4)
     >>> crop_size = pattern.get_crop_size()
     >>> template = pattern.get_template(sig_shape=(2 * crop_size, 2 * crop_size))
     >>>
@@ -251,7 +248,7 @@ def process_frame_fast(template, crop_size, frame, peaks,
     >>> heights = np.zeros((len(frames), len(peaks)), dtype=np.float32)
     >>> elevations = np.zeros((len(frames), len(peaks)), dtype=np.float32)
     >>>
-    >>> crop_bufs = base.correlation.allocate_crop_bufs(crop_size, len(peaks), frames.dtype)
+    >>> crop_bufs = libertem_blobfinder.base.correlation.allocate_crop_bufs(crop_size, len(peaks), frames.dtype)
     >>>
     >>> for i, f in enumerate(frames):
     ...     process_frame_fast(
@@ -299,7 +296,7 @@ def process_frame_full(template, crop_size, frame, peaks,
     Parameters
     ----------
     template : numpy.ndarray
-        Real Fourier transfrom of the correlation pattern.
+        Real Fourier transform of the correlation pattern.
         The source pattern should have size (2 * crop_size, 2 * crop_size). Please note that
         the real Fourier transform (fft.rfft2) of the source pattern has a different shape!
     crop_size : int
@@ -337,11 +334,8 @@ def process_frame_full(template, crop_size, frame, peaks,
     Example
     -------
 
-    >>> import libertem_blobfinder.base as base
-    >>> import libertem_blobfinder.common as common
-    >>>
     >>> frames, indices, peaks = libertem.utils.generate.cbed_frame()
-    >>> pattern = common.patterns.RadialGradient(radius=4)
+    >>> pattern = libertem_blobfinder.common.patterns.RadialGradient(radius=4)
     >>> crop_size = pattern.get_crop_size()
     >>> template = pattern.get_template(sig_shape=frames[0].shape)
     >>>
@@ -350,11 +344,11 @@ def process_frame_full(template, crop_size, frame, peaks,
     >>> heights = np.zeros((len(frames), len(peaks)), dtype=np.float32)
     >>> elevations = np.zeros((len(frames), len(peaks)), dtype=np.float32)
     >>>
-    >>> frame_buf = base.correlation.zeros(frames[0].shape, dtype=np.float32)
-    >>> buf_count = base.correlation.get_buf_count(crop_size, len(peaks), frame_buf.dtype)
+    >>> frame_buf = libertem_blobfinder.base.correlation.zeros(frames[0].shape, dtype=np.float32)
+    >>> buf_count = libertem_blobfinder.base.correlation.get_buf_count(crop_size, len(peaks), frame_buf.dtype)
     >>>
     >>> for i, f in enumerate(frames):
-    ...     base.correlation.process_frame_full(
+    ...     process_frame_full(
     ...         template=template, crop_size=crop_size,
     ...         frame=f, peaks=peaks.astype(np.int32),
     ...         out_centers=centers[i], out_refineds=refineds[i],

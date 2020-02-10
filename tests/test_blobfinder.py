@@ -10,6 +10,12 @@ from libertem.utils.generate import cbed_frame
 from libertem.io.dataset.memory import MemoryDataSet
 
 from libertem_blobfinder import base, common, udf
+import libertem_blobfinder.base.correlation
+import libertem_blobfinder.common.correlation
+import libertem_blobfinder.common.patterns
+import libertem_blobfinder.common.utils
+import libertem_blobfinder.udf.refinement
+import libertem_blobfinder.udf.correlation  # noqa F401
 
 from utils import _mk_random
 
