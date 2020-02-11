@@ -10,6 +10,10 @@ should be listed here, please contact us. We are grateful for every
 contribution, and if your contribution is not listed here we'd like to extend
 our apologies and update this as soon as possible.
 
+Karina Ruzaeva implemented the correlation routines and introduced feature
+vectors and clustering. Dieter Weber implemented the grid matching and
+refinement code.
+
 Creators
 ~~~~~~~~
 

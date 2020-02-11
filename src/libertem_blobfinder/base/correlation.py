@@ -256,7 +256,7 @@ def process_frame_fast(template, crop_size, frame, peaks,
 
     This function is designed to be used in an optimized pipeline with a pre-calculated
     Fourier transform of the match pattern and optional pre-allocated buffers.
-    It is the engine of the :class:`libertem_blobfinder.udf.FastCorrelationUDF` for
+    It is the engine of the :class:`libertem_blobfinder.udf.correlation.FastCorrelationUDF` for
     stand-alone use independent of LiberTEM.
 
     :meth:`libertem_blobfinder.common.correlation.process_frames_fast` offers a more
@@ -348,8 +348,8 @@ def process_frame_full(template, crop_size, frame, peaks,
 
     This function is designed to be used in an optimized pipeline with a pre-calculated
     Fourier transform of the match pattern and optional pre-allocated buffers. It is the
-    engine of the :class:`libertem_blobfinder.udf.FullFrameCorrelationUDF` for stand-alone
-    use independent of LiberTEM.
+    engine of the :class:`libertem_blobfinder.udf.correlation.FullFrameCorrelationUDF`
+    for stand-alone use independent of LiberTEM.
 
     :meth:`libertem_blobfinder.common.correlation.process_frames_full` offers a more
     convenient interface for batch processing.
