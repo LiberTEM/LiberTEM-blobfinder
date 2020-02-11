@@ -1,7 +1,8 @@
 Examples
 ========
 
-See also FIXME for the folder with notebooks.
+See also https://github.com/LiberTEM/LiberTEM-blobfinder/tree/master/examples
+for a folder with the notebooks.
 
 Strain map of a transistor
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
