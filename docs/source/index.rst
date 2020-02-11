@@ -18,6 +18,8 @@ Documentation
    :maxdepth: 2
    :caption: Contents:
 
+   install
+   usage
    examples
    changelog
    reference
