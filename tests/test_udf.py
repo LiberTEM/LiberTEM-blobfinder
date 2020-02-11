@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import matplotlib.pyplot as plt
 
 import libertem.analysis.gridmatching as grm
 import libertem.masks as m
@@ -9,9 +10,9 @@ from libertem.io.dataset.memory import MemoryDataSet
 from libertem_blobfinder import common, udf
 import libertem_blobfinder.common.correlation
 import libertem_blobfinder.common.patterns
-import libertem_blobfinder.common.utils
 import libertem_blobfinder.udf.refinement
-import libertem_blobfinder.udf.correlation  # noqa F401
+import libertem_blobfinder.udf.correlation
+import libertem_blobfinder.udf.utils  # noqa F401
 
 from utils import _mk_random
 
@@ -413,3 +414,45 @@ def test_correlation_method_fullframe(lt_ctx, cls, dtype, kwargs):
         # plt.show()
 
         assert np.allclose(res['refineds'].data[0], peaks, atol=0.5)
+
+
+def test_visualize_smoke(lt_ctx):
+    shape = np.array([128, 128])
+    zero = shape / 2 + np.random.uniform(-1, 1, size=2)
+    a = np.array([27.17, 0.]) + np.random.uniform(-1, 1, size=2)
+    b = np.array([0., 29.19]) + np.random.uniform(-1, 1, size=2)
+    indices = np.mgrid[-2:3, -2:3]
+    indices = np.concatenate(indices.T)
+
+    radius = 10
+
+    data, indices, peaks = cbed_frame(*shape, zero, a, b, indices, radius)
+
+    data = data.reshape((1, 1, *shape))
+
+    dataset = MemoryDataSet(data=data, tileshape=(1, *shape),
+                            num_partitions=1, sig_dims=2)
+    matcher = grm.Matcher()
+
+    match_pattern = common.patterns.RadialGradientBackgroundSubtraction(radius=radius)
+
+    print("zero: ", zero)
+    print("a: ", a)
+    print("b: ", b)
+
+    (res, real_indices) = udf.refinement.run_refine(
+        ctx=lt_ctx,
+        dataset=dataset,
+        zero=zero + np.random.uniform(-1, 1, size=2),
+        a=a + np.random.uniform(-1, 1, size=2),
+        b=b + np.random.uniform(-1, 1, size=2),
+        matcher=matcher,
+        match_pattern=match_pattern
+    )
+
+    fig, axes = plt.subplots()
+    udf.utils.visualize_frame(
+        ctx=lt_ctx, ds=dataset, result=res, indices=real_indices,
+        r=radius, y=0, x=0, axes=axes
+    )
+    # plt.show()

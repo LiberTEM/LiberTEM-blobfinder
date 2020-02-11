@@ -1,18 +1,16 @@
 import functools
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-import libertem.analysis.gridmatching as grm
 import libertem.masks as m
 from libertem.utils.generate import cbed_frame
 from libertem.io.dataset.memory import MemoryDataSet
+from libertem.udf.masks import ApplyMasksUDF
 
-from libertem_blobfinder import common, udf
+from libertem_blobfinder import common
 import libertem_blobfinder.common.correlation
 import libertem_blobfinder.common.patterns
-import libertem_blobfinder.common.utils
 import libertem_blobfinder.udf.refinement  # noqa F401
 
 
@@ -94,66 +92,23 @@ def test_featurevector(lt_ctx):
     match_pattern = common.patterns.UserTemplate(template=template)
 
     stack = functools.partial(
-        common.utils.feature_vector,
+        common.patterns.feature_vector,
         imageSizeX=shape[1],
         imageSizeY=shape[0],
         peaks=peaks,
         match_pattern=match_pattern,
-
     )
 
-    job = lt_ctx.create_mask_job(
-        dataset=dataset, factories=stack, mask_count=len(peaks), mask_dtype=np.float32
+    m_udf = ApplyMasksUDF(
+        mask_factories=stack, mask_count=len(peaks), mask_dtype=np.float32
     )
-    res = lt_ctx.run(job)
+    res = lt_ctx.run_udf(dataset=dataset, udf=m_udf)
 
     peak_data, _, _ = cbed_frame(*shape, zero, a, b, np.array([(0, 0)]), radius, all_equal=True)
     peak_sum = peak_data.sum()
 
-    assert np.allclose(res.sum(), data.sum())
-    assert np.allclose(res, peak_sum)
-
-
-def test_visualize_smoke(lt_ctx):
-    shape = np.array([128, 128])
-    zero = shape / 2 + np.random.uniform(-1, 1, size=2)
-    a = np.array([27.17, 0.]) + np.random.uniform(-1, 1, size=2)
-    b = np.array([0., 29.19]) + np.random.uniform(-1, 1, size=2)
-    indices = np.mgrid[-2:3, -2:3]
-    indices = np.concatenate(indices.T)
-
-    radius = 10
-
-    data, indices, peaks = cbed_frame(*shape, zero, a, b, indices, radius)
-
-    data = data.reshape((1, 1, *shape))
-
-    dataset = MemoryDataSet(data=data, tileshape=(1, *shape),
-                            num_partitions=1, sig_dims=2)
-    matcher = grm.Matcher()
-
-    match_pattern = common.patterns.RadialGradientBackgroundSubtraction(radius=radius)
-
-    print("zero: ", zero)
-    print("a: ", a)
-    print("b: ", b)
-
-    (res, real_indices) = udf.refinement.run_refine(
-        ctx=lt_ctx,
-        dataset=dataset,
-        zero=zero + np.random.uniform(-1, 1, size=2),
-        a=a + np.random.uniform(-1, 1, size=2),
-        b=b + np.random.uniform(-1, 1, size=2),
-        matcher=matcher,
-        match_pattern=match_pattern
-    )
-
-    fig, axes = plt.subplots()
-    common.utils.visualize_frame(
-        ctx=lt_ctx, ds=dataset, result=res, indices=real_indices,
-        r=radius, y=0, x=0, axes=axes
-    )
-    # plt.show()
+    assert np.allclose(res['intensity'].data.sum(), data.sum())
+    assert np.allclose(res['intensity'].data, peak_sum)
 
 
 @pytest.mark.with_numba
