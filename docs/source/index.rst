@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 LiberTEM-blobfinder
-============================
+===================
 
 .. include:: ../../README.rst
 ..   see also: https://muffinresearch.co.uk/selectively-including-parts-readme-rst-in-your-docs/
@@ -18,7 +18,9 @@ Documentation
    :maxdepth: 2
    :caption: Contents:
 
+   examples
    changelog
+   reference
    acknowledgments
 
 

@@ -281,8 +281,8 @@ def feature_vector(imageSizeX, imageSizeY, peaks, match_pattern: MatchPattern):
 
     A match template based on the parameters in :code:`parameters` is placed at
     each peak position in an individual mask layer. This mask stack can then
-    be used in :meth:`~libertem.api.Context.create_mask_job` to generate a feature vector for each
-    frame.
+    be used in :class:`libertem.udf.masks.ApplyMasksUDF` to generate a feature
+    vector for each frame.
 
     Summing up the mask stack along the first axis generates a mask that can be used for virtual
     darkfield imaging of all peaks together.

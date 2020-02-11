@@ -208,7 +208,8 @@ todo_include_todos = True
 
 intersphinx_mapping = {
     'numpy': ('http://docs.scipy.org/doc/numpy/', None),
-    'python': ('https://docs.python.org/3.7', None)
+    'python': ('https://docs.python.org/3.7', None),
+    'libertem': ('http://libertem.github.io/LiberTEM/', None),
 }
 
 # Sphinx' link checker.
