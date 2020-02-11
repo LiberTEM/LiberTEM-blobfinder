@@ -79,17 +79,14 @@ setup(
     python_requires='>=3.6',
     install_requires=[
         "numpy",
-        "scipy",
-        "sparse",
-        "matplotlib",
         # Pinned due to https://github.com/pydata/sparse/issues/257
         # Ensure compatibility with numpy 1.17
         "numba>=0.46",
-        "scikit-image",
-        "libertem>=0.3.0"
     ],
     extras_require={
         'pyfftw': 'pyfftw',
+        'common': ['libertem>=0.4.0.dev0', 'scikit-image'],
+        'udf': ['libertem>=0.4.0.dev0', 'scikit-image', 'matplotlib'],
     },
     package_dir={"": "src"},
     packages=[

@@ -2,21 +2,7 @@ import numpy as np
 
 import libertem.masks as masks
 
-
-# FIXME There's work on flexible FFT backends in scipy
-# https://github.com/scipy/scipy/wiki/GSoC-2019-project-ideas#revamp-scipyfftpack
-# and discussions about pyfftw performance vs other implementations
-# https://github.com/pyFFTW/pyFFTW/issues/264
-# For that reason we shoud review the state of Python FFT implementations
-# regularly and adapt our choices accordingly
-try:
-    import pyfftw
-    fft = pyfftw.interfaces.numpy_fft
-    pyfftw.interfaces.cache.enable()
-    zeros = pyfftw.zeros_aligned
-except ImportError:
-    fft = np.fft
-    zeros = np.zeros
+from libertem_blobfinder.base.correlation import fft
 
 
 class MatchPattern:
