@@ -10,7 +10,7 @@ It is structured into three parts:
 2. A "common" package that uses other "common" aspects of LiberTEM for convenience,
    but can be used independent of LiberTEM core facilities.. See :ref:`blobfinder
    common` for the reference documentation.
-1. A "udf" package with classes and functions to use this functionality with full
+3. A "udf" package with classes and functions to use this functionality with full
    LiberTEM integration. See :ref:`blobfinder udf` for the reference documentation.
 
 LiberTEM-blobfinder can evaluate the position of convergent beam electron
