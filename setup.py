@@ -4,7 +4,7 @@ import codecs
 import subprocess
 from setuptools.command.sdist import sdist
 from setuptools.command.build_py import build_py
-from setuptools import setup
+from setuptools import setup, find_namespace_packages
 
 
 class BakedRevisionBuilderSdist(sdist):
@@ -89,14 +89,7 @@ setup(
         'udf': ['libertem>=0.4.0.dev0', 'scikit-image', 'matplotlib'],
     },
     package_dir={"": "src"},
-    packages=[
-        "libertem_blobfinder",
-    ],
-    # entry_points={
-    #     'console_scripts': [
-    #         'libertem-server=libertem.web.cli:main',
-    #     ]
-    # },
+    packages=find_namespace_packages(where='src'),
     cmdclass={
         'sdist': BakedRevisionBuilderSdist,
         'build_py': BakedRevisionBuilderBuildPy,
