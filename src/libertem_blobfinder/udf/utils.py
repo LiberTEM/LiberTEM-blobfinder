@@ -12,7 +12,7 @@ def visualize_frame(ctx, ds, result, indices, r, y, x, axes, colors=None, stretc
     get_sample_frame = ctx.create_pick_analysis(dataset=ds, y=y, x=x)
     sample_frame = ctx.run(get_sample_frame)
 
-    d = sample_frame[0].raw_data
+    d = sample_frame[0].raw_data.astype(np.float32)
 
     pcm = axes.imshow(np.log(d - np.min(d) + 1))
 
