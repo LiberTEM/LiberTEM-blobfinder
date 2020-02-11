@@ -1,17 +1,8 @@
 .. _`strain mapping`:
 
 LiberTEM-blobfinder is a package for correlation-based peak finding and strain
-mapping. It is part of the `LiberTEM project <https://libertem.github.io/LiberTEM/>`_
-
-It is structured into three parts:
-
-1. A "base" package with numerics functions that work independent of LiberTEM. See
-   :ref:`blobfinder base` for the reference documentation.
-2. A "common" package that uses other "common" aspects of LiberTEM for convenience,
-   but can be used independent of LiberTEM core facilities.. See :ref:`blobfinder
-   common` for the reference documentation.
-3. A "udf" package with classes and functions to use this functionality with full
-   LiberTEM integration. See :ref:`blobfinder udf` for the reference documentation.
+mapping. It is part of the `LiberTEM project
+<https://libertem.github.io/LiberTEM/>`_.
 
 LiberTEM-blobfinder can evaluate the position of convergent beam electron
 diffraction disks or precession electron diffraction peaks to generate input
@@ -54,7 +45,13 @@ Relevant input parameters are
 
 .. rubric:: Reference
 
-See :ref:`blobfinder API reference <blobfinder api>` for details!
+See `blobfinder API reference
+<https://libertem.github.io/LiberTEM-blobfinder/reference.html>`_ for details!
+
+.. rubric:: Examples
+
+See `example applications
+<https://libertem.github.io/LiberTEM-blobfinder/examples.html>`_!
 
 License
 -------

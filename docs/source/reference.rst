@@ -3,6 +3,14 @@
 Reference
 =========
 
+LiberTEM-blobfinder is structured into three parts:
+
+1. A "base" package with numerics functions that work independent of LiberTEM.
+2. A "common" package that uses other "common" aspects of LiberTEM for convenience,
+   but can be used independent of LiberTEM core facilities.
+3. A "udf" package with classes and functions to use this functionality with full
+   LiberTEM integration.
+
 .. _`blobfinder base`:
 
 Basic numerics functions
