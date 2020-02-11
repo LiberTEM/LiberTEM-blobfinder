@@ -46,27 +46,10 @@ def auto_libertem(doctest_namespace):
     import libertem.masks
     import libertem.api
     import libertem_blobfinder
-    import libertem_blobfinder.base
-    import libertem_blobfinder.common
-    import libertem_blobfinder.udf
-    import libertem_blobfinder.base.correlation
-    import libertem_blobfinder.common.correlation
-    import libertem_blobfinder.common.patterns
-    import libertem_blobfinder.common.utils
-    import libertem_blobfinder.udf.correlation
-    import libertem_blobfinder.udf.refinement
+
     doctest_namespace["libertem"] = libertem
-    doctest_namespace["libertem_blobfinder"] = libertem_blobfinder
-    doctest_namespace["libertem_blobfinder.base"] = libertem_blobfinder.base
-    doctest_namespace["libertem_blobfinder.common"] = libertem_blobfinder.common
-    doctest_namespace["libertem_blobfinder.udf"] = libertem_blobfinder.udf
-    doctest_namespace["libertem_blobfinder.base.correlation"] = libertem_blobfinder.base.correlation
-    doctest_namespace["libertem_blobfinder.common.correlation"] = \
-        libertem_blobfinder.common.correlation
-    doctest_namespace["libertem_blobfinder.common.utils"] = libertem_blobfinder.common.utils
-    doctest_namespace["libertem_blobfinder.udf.correlation"] = libertem_blobfinder.udf.correlation
-    doctest_namespace["libertem_blobfinder.udf.refinement"] = libertem_blobfinder.udf.refinement
     doctest_namespace["libertem.utils"] = libertem.utils
     doctest_namespace["libertem.utils.generate"] = libertem.utils.generate
     doctest_namespace["libertem.masks"] = libertem.masks
     doctest_namespace["libertem.api"] = libertem.api
+    doctest_namespace["libertem_blobfinder"] = libertem_blobfinder

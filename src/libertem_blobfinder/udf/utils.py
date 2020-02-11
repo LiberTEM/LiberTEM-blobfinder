@@ -1,43 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-import libertem.masks as masks
 import libertem.analysis.gridmatching as grm
-
-from libertem_blobfinder.common.patterns import MatchPattern
-
-
-def feature_vector(imageSizeX, imageSizeY, peaks, match_pattern: MatchPattern):
-    '''
-    This function generates a sparse mask stack to extract a feature vector.
-
-    A match template based on the parameters in :code:`parameters` is placed at
-    each peak position in an individual mask layer. This mask stack can then
-    be used in :meth:`~libertem.api.Context.create_mask_job` to generate a feature vector for each
-    frame.
-
-    Summing up the mask stack along the first axis generates a mask that can be used for virtual
-    darkfield imaging of all peaks together.
-
-    Parameters
-    ----------
-
-    imageSizeX,imageSizeY : int
-        Frame size in px
-    peaks : numpy.ndarray
-        Peak positions in px as numpy.ndarray of shape (n, 2) with integer type
-    match_pattern : MatchPattern
-        Instance of :class:`~MatchPattern`
-    '''
-    crop_size = match_pattern.get_crop_size()
-    return masks.sparse_template_multi_stack(
-        mask_index=range(len(peaks)),
-        offsetX=peaks[:, 1] - crop_size,
-        offsetY=peaks[:, 0] - crop_size,
-        template=match_pattern.get_mask((2*crop_size + 1, 2*crop_size + 1)),
-        imageSizeX=imageSizeX,
-        imageSizeY=imageSizeY,
-    )
 
 
 def visualize_frame(ctx, ds, result, indices, r, y, x, axes, colors=None, stretch=10):
