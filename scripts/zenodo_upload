@@ -373,7 +373,7 @@ def make_data():
 @click.command()
 @click.option('--wheel', required=True, type=click.File())
 @click.option('--tarball', required=True, type=click.File())
-@click.option('--parent', default="264899")
+@click.option('--parent', default="494128")
 @click.option('--url', default='https://sandbox.zenodo.org/api/')
 @click.option('--verbose', '-v', is_flag=True)
 @click.option('--mask-zenodo-exception', is_flag=True)
