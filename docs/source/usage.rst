@@ -31,7 +31,7 @@ Relevant input parameters are
 
 * Matching template
     * Instance of :class:`~libertem_blobfinder.common.patterns.MatchPattern`
-    * Available options are :class:`~libertem.udf.blobfinder.RadialGradient`,
+    * Available options are :class:`~libertem_blobfinder.common.patterns.RadialGradient`,
       :class:`~libertem_blobfinder.common.patterns.BackgroundSubtraction`,
       :class:`~libertem_blobfinder.common.patterns.RadialGradientBackgroundSubtraction`, and
       :class:`~libertem_blobfinder.common.patterns.UserTemplate`
