@@ -2,15 +2,16 @@ Changelog
 =========
 
 .. _continuous:
-.. _latest:
+.. _`v0-5-0`:
 
 0.5.0.dev0 (continuous)
 #######################
 
-.. toctree::
-   :glob:
-
-   changelog/*/*
+.. Commented out until first entry is ready
+.. .. toctree::
+..    :glob:
+..
+..    changelog/*/*
 
 .. _latest:
 .. _`v0-4-0`:
