@@ -17,8 +17,11 @@ import libertem_blobfinder.udf.utils  # noqa F401
 from utils import _mk_random
 
 
+@pytest.mark.parametrize(
+    "progress", [True, False]
+)
 @pytest.mark.with_numba
-def test_smoke(lt_ctx):
+def test_smoke(lt_ctx, progress):
     """
     just check if the analysis runs without throwing exceptions:
     """
@@ -27,11 +30,15 @@ def test_smoke(lt_ctx):
                             num_partitions=2, sig_dims=2)
     match_pattern = common.patterns.RadialGradient(radius=4)
     udf.correlation.run_blobfinder(
-        ctx=lt_ctx, dataset=dataset, num_peaks=1, match_pattern=match_pattern
+        ctx=lt_ctx, dataset=dataset, num_peaks=1, match_pattern=match_pattern,
+        progress=progress
     )
 
 
-def test_run_refine_fastmatch(lt_ctx):
+@pytest.mark.parametrize(
+    "progress", [True, False]
+)
+def test_run_refine_fastmatch(lt_ctx, progress):
     shape = np.array([128, 128])
     zero = shape / 2 + np.random.uniform(-1, 1, size=2)
     a = np.array([27.17, 0.]) + np.random.uniform(-1, 1, size=2)
@@ -79,7 +86,8 @@ def test_run_refine_fastmatch(lt_ctx):
             a=a + np.random.uniform(-1, 1, size=2),
             b=b + np.random.uniform(-1, 1, size=2),
             matcher=matcher,
-            match_pattern=match_pattern
+            match_pattern=match_pattern,
+            progress=progress
         )
         print(peaks - grm.calc_coords(
             res['zero'].data[0],
