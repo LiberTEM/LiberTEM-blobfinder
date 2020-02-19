@@ -85,7 +85,7 @@ setup(
     extras_require={
         'pyfftw': 'pyfftw',
         'common': ['libertem>=0.4.0,<1', 'scikit-image'],
-        'udf': ['libertem>=0.4.0,<1', 'scikit-image', 'matplotlib'],
+        'udf': ['libertem>=0.5.0,<1', 'scikit-image', 'matplotlib'],
     },
     package_dir={"": "src"},
     # FIXME find_namespace_packages doesn't seem to be supported in Python 3.6

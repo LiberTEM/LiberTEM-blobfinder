@@ -305,7 +305,7 @@ class SparseCorrelationUDF(CorrelationUDF):
             )
 
 
-def run_fastcorrelation(ctx, dataset, peaks, match_pattern: MatchPattern, roi=None):
+def run_fastcorrelation(ctx, dataset, peaks, match_pattern: MatchPattern, roi=None, progress=False):
     """
     Wrapper function to construct and run a :class:`FastCorrelationUDF`
 
@@ -318,6 +318,8 @@ def run_fastcorrelation(ctx, dataset, peaks, match_pattern: MatchPattern, roi=No
     match_pattern : libertem_blobfinder.patterns.MatchPattern
     roi : numpy.ndarray, optional
         Boolean mask of the navigation dimension to select region of interest (ROI)
+    progress : bool, optional
+        Show progress bar
 
     Returns
     -------
@@ -326,10 +328,10 @@ def run_fastcorrelation(ctx, dataset, peaks, match_pattern: MatchPattern, roi=No
     """
     peaks = peaks.astype(np.int)
     udf = FastCorrelationUDF(peaks=peaks, match_pattern=match_pattern)
-    return ctx.run_udf(dataset=dataset, udf=udf, roi=roi)
+    return ctx.run_udf(dataset=dataset, udf=udf, roi=roi, progress=progress)
 
 
-def run_blobfinder(ctx, dataset, match_pattern: MatchPattern, num_peaks, roi=None):
+def run_blobfinder(ctx, dataset, match_pattern: MatchPattern, num_peaks, roi=None, progress=False):
     """
     Wrapper function to find peaks in a dataset and refine their position using
     :class:`FastCorrelationUDF`
@@ -343,6 +345,8 @@ def run_blobfinder(ctx, dataset, match_pattern: MatchPattern, num_peaks, roi=Non
         Number of peaks to look for
     roi : numpy.ndarray, optional
         Boolean mask of the navigation dimension to select region of interest (ROI)
+    progress : bool, optional
+        Show progress bar
 
     Returns
     -------
@@ -368,7 +372,8 @@ def run_blobfinder(ctx, dataset, match_pattern: MatchPattern, num_peaks, roi=Non
         dataset=dataset,
         peaks=peaks,
         match_pattern=match_pattern,
-        roi=roi
+        roi=roi,
+        progress=progress
     )
 
     return (sum_result, pass_2_results['centers'],
