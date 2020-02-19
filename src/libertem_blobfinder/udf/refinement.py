@@ -149,7 +149,7 @@ class AffineMixin(RefinementMixin):
 
 def run_refine(
         ctx, dataset, zero, a, b, match_pattern: MatchPattern, matcher: grm.Matcher,
-        correlation='fast', match='fast', indices=None, steps=5, roi=None):
+        correlation='fast', match='fast', indices=None, steps=5, roi=None, progress=False):
     '''
     Wrapper function to refine the given lattice for each frame by calculating
     approximate peak positions and refining them for each frame using a
@@ -275,5 +275,6 @@ def run_refine(
         dataset=dataset,
         udf=udf,
         roi=roi,
+        progress=progress
     )
     return (result, indices)
