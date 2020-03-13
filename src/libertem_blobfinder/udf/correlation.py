@@ -71,13 +71,19 @@ class CorrelationUDF(UDF):
     def postprocess(self):
         pass
 
+    def get_peaks(self):
+        return self.params.peaks
+
+    def get_zero_shift(self, index=None):
+        return np.array((0, 0))
+
 
 class FastCorrelationUDF(CorrelationUDF):
     '''
     Fourier-based fast correlation-based refinement of peak positions within a search frame
     for each peak.
     '''
-    def __init__(self, *args, **kwargs):
+    def __init__(self, peaks, match_pattern, zero_shift=None, *args, **kwargs):
         '''
         Parameters
         ----------
@@ -86,12 +92,17 @@ class FastCorrelationUDF(CorrelationUDF):
             Numpy array of (y, x) coordinates with peak positions in px to correlate
         match_pattern : MatchPattern
             Instance of :class:`~libertem_blobfinder.MatchPattern`
+        zero_shift : Union[AUXBufferWrapper, numpy.ndarray], optional
+            Zero shift, for example descan error. Can be :code:`None`, :code:`numpy.array((y, x))`
+            or AUX data with :code:`(y, x)` for each frame.
         '''
         # For testing purposes, allow to inject a different limit via
         # an internal kwarg
         # It has to come through kwarg because of how UDFs are run
         self.limit = kwargs.get('__limit', 2**19)  # 1/2 MB
-        super().__init__(*args, **kwargs)
+        super().__init__(
+            peaks=peaks, match_pattern=match_pattern, zero_shift=zero_shift, *args, **kwargs
+        )
 
     def get_task_data(self):
         ""
@@ -107,8 +118,16 @@ class FastCorrelationUDF(CorrelationUDF):
         }
         return kwargs
 
-    def get_peaks(self):
-        return self.params.peaks
+    def get_zero_shift(self, index=None):
+        if self.params.zero_shift is None:
+            result = np.array((0, 0))
+        elif index is None:
+            # Called when masked with view
+            result = self.params.zero_shift[:]
+        else:
+            # Called when not masked, in postprocess() etc.
+            result = self.params.zero_shift[index]
+        return result
 
     def get_pattern(self):
         return self.params.match_pattern
@@ -121,7 +140,7 @@ class FastCorrelationUDF(CorrelationUDF):
         (centers, refineds, peak_values, peak_elevations) = self.output_buffers()
         ltbc.process_frame_fast(
             template=self.get_template(), crop_size=match_pattern.get_crop_size(),
-            frame=frame, peaks=self.get_peaks(),
+            frame=frame, peaks=self.get_peaks() + np.round(self.get_zero_shift()).astype(np.int),
             out_centers=centers, out_refineds=refineds,
             out_heights=peak_values, out_elevations=peak_elevations,
             crop_bufs=self.task_data.crop_bufs
@@ -138,7 +157,7 @@ class FullFrameCorrelationUDF(CorrelationUDF):
 
     .. versionadded:: 0.3.0
     '''
-    def __init__(self, *args, **kwargs):
+    def __init__(self, peaks, match_pattern, zero_shift=None, *args, **kwargs):
         '''
         Parameters
         ----------
@@ -147,13 +166,18 @@ class FullFrameCorrelationUDF(CorrelationUDF):
             Numpy array of (y, x) coordinates with peak positions in px to correlate
         match_pattern : MatchPattern
             Instance of :class:`~libertem_blobfinder.MatchPattern`
+        zero_shift : Union[AUXBufferWrapper, numpy.ndarray], optional
+            Zero shift, for example descan error. Can be :code:`None`, :code:`numpy.array((y, x))`
+            or AUX data with :code:`(y, x)` for each frame.
         '''
         # For testing purposes, allow to inject a different limit via
         # an internal kwarg
         # It has to come through kwarg because of how UDFs are run
         self.limit = kwargs.get('__limit', 2**19)  # 1/2 MB
 
-        super().__init__(*args, **kwargs)
+        super().__init__(
+            peaks=peaks, match_pattern=match_pattern, zero_shift=zero_shift, *args, **kwargs
+        )
 
     def get_task_data(self):
         ""
@@ -170,8 +194,16 @@ class FullFrameCorrelationUDF(CorrelationUDF):
         }
         return kwargs
 
-    def get_peaks(self):
-        return self.params.peaks
+    def get_zero_shift(self, index=None):
+        if self.params.zero_shift is None:
+            result = np.array((0, 0))
+        elif index is None:
+            # Called when masked with view
+            result = self.params.zero_shift[:]
+        else:
+            # Called when not masked, in postprocess() etc.
+            result = self.params.zero_shift[index]
+        return result
 
     def get_pattern(self):
         return self.params.match_pattern
@@ -186,7 +218,7 @@ class FullFrameCorrelationUDF(CorrelationUDF):
             template=self.get_template(),
             crop_size=match_pattern.get_crop_size(),
             frame=frame,
-            peaks=self.get_peaks(),
+            peaks=self.get_peaks() + np.round(self.get_zero_shift()).astype(np.int),
             out_centers=centers,
             out_refineds=refineds,
             out_heights=peak_values,

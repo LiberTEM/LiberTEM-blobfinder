@@ -106,7 +106,7 @@ class FastmatchMixin(RefinementMixin):
                 refineds=r.refineds[index],
                 peak_values=r.peak_values[index],
                 peak_elevations=r.peak_elevations[index],
-                zero=p.start_zero,
+                zero=p.start_zero + self.get_zero_shift(index),
                 a=p.start_a,
                 b=p.start_b,
             )
@@ -149,7 +149,8 @@ class AffineMixin(RefinementMixin):
 
 def run_refine(
         ctx, dataset, zero, a, b, match_pattern: MatchPattern, matcher: grm.Matcher,
-        correlation='fast', match='fast', indices=None, steps=5, roi=None, progress=False):
+        correlation='fast', match='fast', indices=None, steps=5, zero_shift=None, roi=None,
+        progress=False):
     '''
     Wrapper function to refine the given lattice for each frame by calculating
     approximate peak positions and refining them for each frame using a
@@ -195,8 +196,13 @@ def run_refine(
         Only for correlation == 'sparse': Correlation steps. See
         :meth:`~SparseCorelationUDF.__init__` for
         details.
+    zero_shift : Union[AUXBufferWrapper, numpy.ndarray], optional
+        Zero shift, for example descan error. Can be :code:`None`, :code:`numpy.array((y, x))`
+        or AUX data with :code:`(y, x)` for each frame.
     roi : numpy.ndarray, optional
         ROI for :meth:`~libertem.api.Context.run_udf`
+    progress : bool, optional
+        Show progress bar. Default :code:`False`
 
     Returns
     -------
@@ -268,7 +274,8 @@ def run_refine(
         start_b=b,
         match_pattern=match_pattern,
         matcher=matcher,
-        steps=steps
+        steps=steps,
+        zero_shift=zero_shift,
     )
 
     result = ctx.run_udf(

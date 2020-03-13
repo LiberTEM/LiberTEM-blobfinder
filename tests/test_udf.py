@@ -6,6 +6,7 @@ import libertem.analysis.gridmatching as grm
 import libertem.masks as m
 from libertem.utils.generate import cbed_frame
 from libertem.io.dataset.memory import MemoryDataSet
+from libertem.udf.base import UDF
 
 from libertem_blobfinder import common, udf
 import libertem_blobfinder.common.correlation
@@ -464,3 +465,69 @@ def test_visualize_smoke(lt_ctx):
         r=radius, y=0, x=0, axes=axes
     )
     # plt.show()
+
+
+def test_run_refine_fastmatch_zeroshift(lt_ctx):
+    shape = np.array([128, 128])
+    zero = shape / 2 + np.random.uniform(-1, 1, size=2)
+    a = np.array([27.17, 0.]) + np.random.uniform(-1, 1, size=2)
+    b = np.array([0., 29.19]) + np.random.uniform(-1, 1, size=2)
+    indices = np.mgrid[-2:3, -2:3]
+    indices = np.concatenate(indices.T)
+
+    drop = np.random.choice([True, False], size=len(indices), p=[0.9, 0.1])
+    indices = indices[drop]
+
+    radius = 10
+    # Exactly between peaks, worst case
+    shift = (a + b) / 2
+
+    data_0, indices_0, peaks_0 = cbed_frame(*shape, zero, a, b, indices, radius)
+    data_1, indices_1, peaks_1 = cbed_frame(*shape, zero + shift, a, b, indices, radius)
+
+    data = np.concatenate((data_0, data_1), axis=0)
+
+    dataset = MemoryDataSet(data=data, tileshape=(1, *shape),
+                            num_partitions=1, sig_dims=2)
+    matcher = grm.Matcher()
+
+    match_patterns = [
+        # Least reliable pattern
+        common.patterns.Circular(radius=radius),
+    ]
+
+    print("zero: ", zero)
+    print("a: ", a)
+    print("b: ", b)
+
+    for match_pattern in match_patterns:
+        print("refining using template %s" % type(match_pattern))
+        zero_shift = np.array([(0., 0.), shift]).astype(np.float32)
+        (res, real_indices) = udf.refinement.run_refine(
+            ctx=lt_ctx,
+            dataset=dataset,
+            zero=zero + np.random.uniform(-1, 1, size=2),
+            a=a + np.random.uniform(-1, 1, size=2),
+            b=b + np.random.uniform(-1, 1, size=2),
+            matcher=matcher,
+            match_pattern=match_pattern,
+            zero_shift=UDF.aux_data(zero_shift, kind='nav', extra_shape=(2,))
+        )
+        print(peaks_0 - grm.calc_coords(
+            res['zero'].data[0],
+            res['a'].data[0],
+            res['b'].data[0],
+            indices_0)
+        )
+
+        print(peaks_1 - grm.calc_coords(
+            res['zero'].data[1],
+            res['a'].data[1],
+            res['b'].data[1],
+            indices_1)
+        )
+
+        assert np.allclose(res['zero'].data[0], zero, atol=0.5)
+        assert np.allclose(res['zero'].data[1], zero + shift, atol=0.5)
+        assert np.allclose(res['a'].data, a, atol=0.2)
+        assert np.allclose(res['b'].data, b, atol=0.2)
