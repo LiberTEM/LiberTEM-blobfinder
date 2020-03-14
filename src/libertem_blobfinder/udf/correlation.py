@@ -15,7 +15,7 @@ class CorrelationUDF(UDF):
     '''
     Abstract base class for peak correlation implementations
     '''
-    def __init__(self, peaks, *args, **kwargs):
+    def __init__(self, peaks, zero_shift=None, *args, **kwargs):
         '''
         Parameters
         ----------
@@ -23,7 +23,7 @@ class CorrelationUDF(UDF):
         peaks : numpy.ndarray
             Numpy array of (y, x) coordinates with peak positions in px to correlate
         '''
-        super().__init__(peaks=np.round(peaks).astype(int), *args, **kwargs)
+        super().__init__(peaks=np.round(peaks).astype(int), zero_shift=zero_shift, *args, **kwargs)
 
     def get_result_buffers(self):
         '''
@@ -75,7 +75,15 @@ class CorrelationUDF(UDF):
         return self.params.peaks
 
     def get_zero_shift(self, index=None):
-        return np.array((0, 0))
+        if self.params.zero_shift is None:
+            result = np.array((0, 0))
+        elif index is None:
+            # Called when masked with view
+            result = self.params.zero_shift
+        else:
+            # Called when not masked, in postprocess() etc.
+            result = self.params.zero_shift[index]
+        return result
 
 
 class FastCorrelationUDF(CorrelationUDF):
@@ -117,17 +125,6 @@ class FastCorrelationUDF(CorrelationUDF):
             'template': template,
         }
         return kwargs
-
-    def get_zero_shift(self, index=None):
-        if self.params.zero_shift is None:
-            result = np.array((0, 0))
-        elif index is None:
-            # Called when masked with view
-            result = self.params.zero_shift[:]
-        else:
-            # Called when not masked, in postprocess() etc.
-            result = self.params.zero_shift[index]
-        return result
 
     def get_pattern(self):
         return self.params.match_pattern
@@ -194,17 +191,6 @@ class FullFrameCorrelationUDF(CorrelationUDF):
         }
         return kwargs
 
-    def get_zero_shift(self, index=None):
-        if self.params.zero_shift is None:
-            result = np.array((0, 0))
-        elif index is None:
-            # Called when masked with view
-            result = self.params.zero_shift[:]
-        else:
-            # Called when not masked, in postprocess() etc.
-            result = self.params.zero_shift[index]
-        return result
-
     def get_pattern(self):
         return self.params.match_pattern
 
@@ -234,7 +220,7 @@ class SparseCorrelationUDF(CorrelationUDF):
 
     This method allows to adjust the number of correlation steps independent of the template size.
     '''
-    def __init__(self, *args, **kwargs):
+    def __init__(self, peaks, match_pattern, steps, *args, **kwargs):
         '''
         Parameters
         ----------
@@ -249,7 +235,9 @@ class SparseCorrelationUDF(CorrelationUDF):
             detected. The number of calculations grows with the square of this value, that means
             keeping this as small as the data allows speeds up the calculation.
         '''
-        super().__init__(*args, **kwargs)
+        super().__init__(
+            peaks=peaks, match_pattern=match_pattern, steps=steps, *args, **kwargs
+        )
 
     def get_result_buffers(self):
         """
@@ -337,7 +325,8 @@ class SparseCorrelationUDF(CorrelationUDF):
             )
 
 
-def run_fastcorrelation(ctx, dataset, peaks, match_pattern: MatchPattern, roi=None, progress=False):
+def run_fastcorrelation(
+        ctx, dataset, peaks, match_pattern: MatchPattern, zero_shift=None, roi=None, progress=False):
     """
     Wrapper function to construct and run a :class:`FastCorrelationUDF`
 
@@ -359,7 +348,7 @@ def run_fastcorrelation(ctx, dataset, peaks, match_pattern: MatchPattern, roi=No
         See :meth:`CorrelationUDF.get_result_buffers` for details.
     """
     peaks = peaks.astype(np.int)
-    udf = FastCorrelationUDF(peaks=peaks, match_pattern=match_pattern)
+    udf = FastCorrelationUDF(peaks=peaks, match_pattern=match_pattern, zero_shift=zero_shift)
     return ctx.run_udf(dataset=dataset, udf=udf, roi=roi, progress=progress)
 
 
