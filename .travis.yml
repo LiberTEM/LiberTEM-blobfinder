@@ -3,6 +3,8 @@ os: linux
 dist: xenial
 cache:
   - pip
+  - directories:
+    - $HOME/.pyenv/versions/
 
 install:
   - pip install tox
