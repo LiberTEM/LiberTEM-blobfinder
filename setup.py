@@ -79,9 +79,8 @@ setup(
     python_requires='>=3.6',
     install_requires=[
         "numpy",
-        # Pinned due to https://github.com/pydata/sparse/issues/257
-        # Ensure compatibility with numpy 1.17
-        "numba>=0.46",
+        # Moved numba.unsafe.ndarray -> numba.np.unsafe.ndarray
+        "numba>=0.49",
     ],
     extras_require={
         'pyfftw': 'pyfftw',
