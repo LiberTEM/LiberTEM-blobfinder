@@ -25,7 +25,7 @@ if os.getenv('NUMBA_DISABLE_JIT'):
     def to_fixed_tuple(arr, l):
         return tuple(arr)
 else:
-    from numba.unsafe.ndarray import to_fixed_tuple
+    from numba.np.unsafe.ndarray import to_fixed_tuple
 
 
 @numba.njit
