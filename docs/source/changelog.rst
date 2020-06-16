@@ -14,6 +14,15 @@ Changelog
 ..    changelog/*/*
 
 .. _latest:
+
+0.4.1
+#####
+
+Bug fixes
+---------
+
+* Ensure compatibility with numba>=0.50 :pr:`28`
+
 .. _`v0-4-0`:
 
 0.4.0
