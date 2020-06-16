@@ -22,8 +22,8 @@ except ImportError:
 # Necessary to work with JIT disabled for coverage and testing purposes
 # https://github.com/LiberTEM/LiberTEM/issues/539
 if os.getenv('NUMBA_DISABLE_JIT'):
-    def to_fixed_tuple(arr, l):
-        return tuple(arr)
+    def to_fixed_tuple(array, length):
+        return tuple(array)
 else:
     from numba.np.unsafe.ndarray import to_fixed_tuple
 
