@@ -7,7 +7,7 @@ cache:
     - $HOME/.pyenv/versions/
 
 install:
-  - pip install tox
+  - pip install -U tox 'virtualenv>19'
 
 script:
   - tox
@@ -81,7 +81,7 @@ jobs:
       env: TOXENV=docs-deploy
       python: 3.7
       install:
-        - pip install tox
+        - pip install -U tox 'virtualenv>19'
         - sudo apt-get install -y pandoc
 
     - stage: packaging
