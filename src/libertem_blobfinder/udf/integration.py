@@ -60,4 +60,6 @@ class IntegrationUDF(UDF):
             crop_size=crop_size,
             out_crop_bufs=self.task_data.crop_bufs,
         )
-        self.results.integration[:] = np.sum(self.task_data.crop_bufs * self.task_data.pattern, axis=(-1, -2))
+        self.results.integration[:] = np.sum(
+            self.task_data.crop_bufs * self.task_data.pattern, axis=(-1, -2)
+        )
