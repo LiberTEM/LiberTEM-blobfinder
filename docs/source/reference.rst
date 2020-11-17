@@ -66,6 +66,19 @@ UDFs and utility functions to refine grid parameters from peak positions.
    :show-inheritance:
    :special-members: __init__
 
+Integration
+~~~~~~~~~~~
+
+UDFs to integrate peak intensity with positions specified per frame. If the peak
+positions are sufficiently similar for all frames, you can use
+:meth:`libertem_blobfinder.common.patterns.feature_vector` together with
+:class:`libertem.udf.masks.ApplyMasksUDF` instead.
+
+.. automodule:: libertem_blobfinder.udf.integration
+   :members:
+   :show-inheritance:
+   :special-members: __init__
+
 Utilities
 ~~~~~~~~~
 
