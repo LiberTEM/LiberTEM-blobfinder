@@ -425,7 +425,10 @@ def test_correlation_method_fullframe(lt_ctx, cls, dtype, kwargs):
         assert np.allclose(res['refineds'].data[0], peaks, atol=0.5)
 
 
-def test_visualize_smoke(lt_ctx):
+@pytest.mark.parametrize(
+    "navshape", ((1, 1), (1, ))
+)
+def test_visualize_smoke(navshape, lt_ctx):
     shape = np.array([128, 128])
     zero = shape / 2 + np.random.uniform(-1, 1, size=2)
     a = np.array([27.17, 0.]) + np.random.uniform(-1, 1, size=2)
@@ -437,7 +440,7 @@ def test_visualize_smoke(lt_ctx):
 
     data, indices, peaks = cbed_frame(*shape, zero, a, b, indices, radius)
 
-    data = data.reshape((1, 1, *shape))
+    data = data.reshape((*navshape, *shape))
 
     dataset = MemoryDataSet(data=data, tileshape=(1, *shape),
                             num_partitions=1, sig_dims=2)
@@ -460,9 +463,15 @@ def test_visualize_smoke(lt_ctx):
     )
 
     fig, axes = plt.subplots()
+    if len(navshape) == 1:
+        y = None
+    elif len(navshape) == 2:
+        y = 0
+    else:
+        raise ValueError(f"Nav shape too long, supported are 1D and 2D: {navshape}")
     udf.utils.visualize_frame(
         ctx=lt_ctx, ds=dataset, result=res, indices=real_indices,
-        r=radius, y=0, x=0, axes=axes
+        r=radius, y=y, x=0, axes=axes
     )
     # plt.show()
 
