@@ -7,13 +7,14 @@ Changelog
 0.5.0.dev0 (continuous)
 #######################
 
-.. Commented out until first entry is ready
-.. .. toctree::
-..    :glob:
-..
-..    changelog/*/*
+.. toctree::
+   :glob:
+
+   changelog/*/*
 
 .. _latest:
+
+.. _`v0-4-1`:
 
 0.4.1
 #####
