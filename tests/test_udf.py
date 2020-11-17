@@ -13,6 +13,7 @@ import libertem_blobfinder.common.correlation
 import libertem_blobfinder.common.patterns
 import libertem_blobfinder.udf.refinement
 import libertem_blobfinder.udf.correlation
+import libertem_blobfinder.udf.integration
 import libertem_blobfinder.udf.utils  # noqa F401
 
 from utils import _mk_random
@@ -546,3 +547,60 @@ def test_run_refine_fastmatch_zeroshift(lt_ctx):
         assert np.allclose(res['zero'].data[1], zero + shift, atol=0.5)
         assert np.allclose(res['a'].data, a, atol=0.2)
         assert np.allclose(res['b'].data, b, atol=0.2)
+
+
+def test_integration(lt_ctx):
+    indices = np.mgrid[-3:4, -3:4]
+    a = (15, 1)
+    b = (-1, 17)
+    zero = (62, 63)
+
+    data = np.zeros((2, 2, 128, 128), dtype=np.float32)
+    peaks = np.zeros((2, 2, 49, 2), dtype=np.int)
+
+    # Frame with a single peak
+    ref_frame, _, _ = cbed_frame(
+        fy=128, fx=128,
+        zero=zero,
+        a=a,
+        b=b,
+        indices=np.mgrid[0:1, 0:1],
+        radius=4,
+        all_equal=True,
+        margin=2
+    )
+
+    # Generate frames where the peaks are
+    # shifted individually so that a common integration
+    # with a feature vector wouldn't work
+    for y in range(2):
+        for x in range(2):
+            (data[y, x], _, peaks[y, x]) = cbed_frame(
+                fy=128, fx=128,
+                zero=(zero[0] + 3*y, zero[1] + 4*x),
+                a=(a[0] - y, a[1]),
+                b=(b[0], b[1] - x),
+                indices=indices,
+                radius=4,
+                all_equal=True,
+                margin=2
+            )
+    data += 1  # add background
+
+    ds = lt_ctx.load("memory", data=data, num_partitions=2)
+
+    centers = libertem_blobfinder.udf.integration.IntegrationUDF.aux_data(
+        data=peaks, kind='nav', dtype=np.int, extra_shape=peaks.shape[-2:]
+    )
+
+    udf = libertem_blobfinder.udf.integration.IntegrationUDF(
+        centers=centers,
+        pattern=libertem_blobfinder.common.patterns.BackgroundSubtraction(
+            radius=5, radius_outer=6
+        )
+    )
+    res = lt_ctx.run_udf(udf=udf, dataset=ds)
+
+    # Make sure the integration result matches exactly the sum of one peak
+    assert np.allclose(ref_frame.sum(), res['integration'].data)
+    assert res['integration'].data.shape == peaks.shape[:-1]
