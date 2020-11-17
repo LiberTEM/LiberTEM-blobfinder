@@ -13,7 +13,7 @@ from libertem_blobfinder.common.correlation import get_peaks
 
 class CorrelationUDF(UDF):
     '''
-    Abstract base class for peak correlation implementations
+    Base class for peak correlation implementations
     '''
     def __init__(self, peaks, zero_shift=None, *args, **kwargs):
         '''
@@ -22,6 +22,9 @@ class CorrelationUDF(UDF):
 
         peaks : numpy.ndarray
             Numpy array of (y, x) coordinates with peak positions in px to correlate
+        zero_shift : Union[AUXBufferWrapper, numpy.ndarray, None], optional
+            Zero shift, for example descan error. Can be :code:`None`, :code:`numpy.array((y, x))`
+            or AUX data with :code:`(y, x)` for each frame.
         '''
         super().__init__(peaks=np.round(peaks).astype(int), zero_shift=zero_shift, *args, **kwargs)
 
