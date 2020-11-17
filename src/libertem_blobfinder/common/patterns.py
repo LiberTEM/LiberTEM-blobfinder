@@ -38,7 +38,7 @@ class Circular(MatchPattern):
     Circular pattern with radius :code:`radius`.
 
     This pattern is useful for constructing feature vectors using
-    :meth:`~libertem_blobfinder.feature_vector`.
+    :meth:`~libertem_blobfinder.common.patterns.feature_vector`.
 
     .. versionadded:: 0.3.0
     '''

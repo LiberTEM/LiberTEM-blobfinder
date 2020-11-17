@@ -7,9 +7,26 @@ from libertem_blobfinder.base.correlation import crop_disks_from_frame, allocate
 
 class IntegrationUDF(UDF):
     def __init__(self, centers, pattern):
+        '''
+        Integrate peak intensity at positions that are specified for each frame.
+
+        Parameters
+        ----------
+        centers : AUXBufferWrapper
+            Peak positions (y, x) as AUX buffer wrapper of kind "nav", extra_shape (num_peaks, 2)
+            and integer dtype.
+        pattern : libertem_blobfinder.common.patterns.MatchPattern
+            Match pattern with the weight for each pixels.
+            :class:`libertem_blobfinder.common.patterns.BackgroundSubtraction` or
+            :class:`libertem_blobfinder.common.patterns.Circular` can be good choices.
+        '''
         super().__init__(centers=centers, pattern=pattern)
 
     def get_result_buffers(self):
+        '''
+        :code:`integration`:
+            Integrated intensity for each peak. Kind "nav", extra_shape (num_peaks, )
+        '''
         dtype = np.result_type(self.meta.input_dtype, np.float32)
         return {
             'integration': self.buffer(
@@ -19,6 +36,8 @@ class IntegrationUDF(UDF):
         }
 
     def get_task_data(self):
+        '''
+        '''
         n_peaks = self.params.centers.shape[-2]
         mask = self.params.pattern
         crop_size = mask.get_crop_size()
@@ -32,6 +51,8 @@ class IntegrationUDF(UDF):
         return kwargs
 
     def process_frame(self, frame):
+        '''
+        '''
         crop_size = self.params.pattern.get_crop_size()
         crop_disks_from_frame(
             peaks=self.params.centers,
