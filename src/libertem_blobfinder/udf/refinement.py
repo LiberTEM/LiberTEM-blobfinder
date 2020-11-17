@@ -196,9 +196,10 @@ def run_refine(
         Only for correlation == 'sparse': Correlation steps. See
         :meth:`~SparseCorelationUDF.__init__` for
         details.
-    zero_shift : Union[AUXBufferWrapper, numpy.ndarray], optional
+    zero_shift : Union[AUXBufferWrapper, numpy.ndarray, None], optional
         Zero shift, for example descan error. Can be :code:`None`, :code:`numpy.array((y, x))`
-        or AUX data with :code:`(y, x)` for each frame.
+        or AUX data with :code:`(y, x)` for each frame. Only supported for correlation methods
+        :code:`fast` and `fullframe`.
     roi : numpy.ndarray, optional
         ROI for :meth:`~libertem.api.Context.run_udf`
     progress : bool, optional

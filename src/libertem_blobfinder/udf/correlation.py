@@ -103,7 +103,7 @@ class FastCorrelationUDF(CorrelationUDF):
             Numpy array of (y, x) coordinates with peak positions in px to correlate
         match_pattern : MatchPattern
             Instance of :class:`~libertem_blobfinder.MatchPattern`
-        zero_shift : Union[AUXBufferWrapper, numpy.ndarray], optional
+        zero_shift : Union[AUXBufferWrapper, numpy.ndarray, None], optional
             Zero shift, for example descan error. Can be :code:`None`, :code:`numpy.array((y, x))`
             or AUX data with :code:`(y, x)` for each frame.
         '''
@@ -166,7 +166,7 @@ class FullFrameCorrelationUDF(CorrelationUDF):
             Numpy array of (y, x) coordinates with peak positions in px to correlate
         match_pattern : MatchPattern
             Instance of :class:`~libertem_blobfinder.MatchPattern`
-        zero_shift : Union[AUXBufferWrapper, numpy.ndarray], optional
+        zero_shift : Union[AUXBufferWrapper, numpy.ndarray, None], optional
             Zero shift, for example descan error. Can be :code:`None`, :code:`numpy.array((y, x))`
             or AUX data with :code:`(y, x)` for each frame.
         '''
@@ -241,6 +241,8 @@ class SparseCorrelationUDF(CorrelationUDF):
         super().__init__(
             peaks=peaks, match_pattern=match_pattern, steps=steps, *args, **kwargs
         )
+        if self.params.zero_shift is not None:
+            raise ValueError("Parameter zero_shift not supported for SparseCorrelationUDF")
 
     def get_result_buffers(self):
         """
@@ -340,6 +342,9 @@ def run_fastcorrelation(
     peaks : numpy.ndarray
         List of peaks with (y, x) coordinates
     match_pattern : libertem_blobfinder.patterns.MatchPattern
+    zero_shift : Union[AUXBufferWrapper, numpy.ndarray, None], optional
+        Zero shift, for example descan error. Can be :code:`None`, :code:`numpy.array((y, x))`
+        or AUX data with :code:`(y, x)` for each frame.
     roi : numpy.ndarray, optional
         Boolean mask of the navigation dimension to select region of interest (ROI)
     progress : bool, optional

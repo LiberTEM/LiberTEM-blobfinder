@@ -306,8 +306,10 @@ def test_run_refine_blocktests(lt_ctx, cls):
     [
         (udf.correlation.FastCorrelationUDF, np.int, {}),
         (udf.correlation.FastCorrelationUDF, np.float, {}),
+        (udf.correlation.FastCorrelationUDF, np.float, {'zero_shift': (2, 3)}),
         (udf.correlation.SparseCorrelationUDF, np.int, {'steps': 3}),
         (udf.correlation.SparseCorrelationUDF, np.float, {'steps': 3}),
+        (udf.correlation.SparseCorrelationUDF, np.float, {'steps': 3, 'zero_shift': (2, 7)}),
     ]
 )
 def test_correlation_methods(lt_ctx, cls, dtype, kwargs):
@@ -347,22 +349,26 @@ def test_correlation_methods(lt_ctx, cls, dtype, kwargs):
 
     for match_pattern in match_patterns:
         print("refining using template %s" % type(match_pattern))
-        m_udf = cls(match_pattern=match_pattern, peaks=peaks.astype(dtype), **kwargs)
-        res = lt_ctx.run_udf(dataset=dataset, udf=m_udf)
-        print(peaks)
-        print(res['refineds'].data[0])
-        print(peaks - res['refineds'].data[0])
-        print(res['peak_values'].data[0])
-        print(res['peak_elevations'].data[0])
+        if cls is udf.correlation.SparseCorrelationUDF and kwargs.get('zero_shift'):
+            with pytest.raises(ValueError):
+                m_udf = cls(match_pattern=match_pattern, peaks=peaks.astype(dtype), **kwargs)
+        else:
+            m_udf = cls(match_pattern=match_pattern, peaks=peaks.astype(dtype), **kwargs)
+            res = lt_ctx.run_udf(dataset=dataset, udf=m_udf)
+            print(peaks)
+            print(res['refineds'].data[0])
+            print(peaks - res['refineds'].data[0])
+            print(res['peak_values'].data[0])
+            print(res['peak_elevations'].data[0])
 
-        # import matplotlib.pyplot as plt
-        # fig, ax = plt.subplots()
-        # plt.imshow(data[0])
-        # for p in np.flip(res['refineds'].data[0], axis=-1):
-        #     ax.add_artist(plt.Circle(p, radius, fill=False, color='y'))
-        # plt.show()
+            # import matplotlib.pyplot as plt
+            # fig, ax = plt.subplots()
+            # plt.imshow(data[0])
+            # for p in np.flip(res['refineds'].data[0], axis=-1):
+            #     ax.add_artist(plt.Circle(p, radius, fill=False, color='y'))
+            # plt.show()
 
-        assert np.allclose(res['refineds'].data[0], peaks, atol=0.5)
+            assert np.allclose(res['refineds'].data[0], peaks, atol=0.5)
 
 
 @pytest.mark.with_numba
