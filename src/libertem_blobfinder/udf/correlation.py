@@ -331,7 +331,8 @@ class SparseCorrelationUDF(CorrelationUDF):
 
 
 def run_fastcorrelation(
-        ctx, dataset, peaks, match_pattern: MatchPattern, zero_shift=None, roi=None, progress=False):
+        ctx, dataset, peaks, match_pattern: MatchPattern, zero_shift=None, roi=None,
+        progress=False):
     """
     Wrapper function to construct and run a :class:`FastCorrelationUDF`
 
