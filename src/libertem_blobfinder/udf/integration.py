@@ -19,6 +19,41 @@ class IntegrationUDF(UDF):
             Match pattern with the weight for each pixels.
             :class:`libertem_blobfinder.common.patterns.BackgroundSubtraction` or
             :class:`libertem_blobfinder.common.patterns.Circular` can be good choices.
+
+        Example
+        -------
+
+        >>> from libertem_blobfinder.udf.integration import IntegrationUDF
+        >>> from libertem_blobfinder.common.patterns import BackgroundSubtraction
+
+        >>> nav_shape = tuple(dataset.shape.nav)
+        >>> sig_shape = tuple(dataset.shape.sig)
+        >>> extra_shape = (3, 2)  # three peaks with coordinates (y, x)
+        >>> peaks_shape = nav_shape + extra_shape
+
+        >>> # Generate some random positions as an example
+        >>> peaks = np.random.randint(low=0, high=np.min(sig_shape), size=peaks_shape)
+
+        >>> # Create an AuxBufferWrapper for the peaks
+        >>> centers = IntegrationUDF.aux_data(
+        ...     data=peaks,
+        ...     kind='nav',
+        ...     dtype=np.int,
+        ...     extra_shape=extra_shape
+        ... )
+
+        >>> udf = IntegrationUDF(
+        ...     centers=centers,
+        ...     pattern=BackgroundSubtraction(radius=5, radius_outer=6)
+        ... )
+
+        >>> res = ctx.run_udf(udf=udf, dataset=dataset)
+
+        >>> nav_shape
+        (16, 16)
+        >>> # Integration result for each frame and peak
+        >>> res['integration'].data.shape
+        (16, 16, 3)
         '''
         super().__init__(centers=centers, pattern=pattern)
 
