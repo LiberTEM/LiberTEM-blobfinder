@@ -23,6 +23,9 @@ jobs:
     - stage: test
       env: TOXENV=py37
       python: 3.7
+    - stage: test
+      env: TOXENV=py38
+      python: 3.8
 
     # OSX tests:
     - stage: test
@@ -33,8 +36,8 @@ jobs:
         - ulimit -n 4096
         - eval "$(pyenv init -)"
         - pyenv install -l
-        - pyenv install --skip-existing 3.6.9
-        - pyenv global 3.6.9
+        - pyenv install --skip-existing 3.6.12
+        - pyenv global 3.6.12
         - pyenv rehash
         - python --version
         - python3 --version
@@ -49,8 +52,24 @@ jobs:
         - ulimit -n 4096
         - eval "$(pyenv init -)"
         - pyenv install -l
-        - pyenv install --skip-existing 3.7.5
-        - pyenv global 3.7.5
+        - pyenv install --skip-existing 3.7.9
+        - pyenv global 3.7.9
+        - pyenv rehash
+        - python --version
+        - python3 --version
+        - pip3 --version
+        - pip --version
+      language: shell
+    - stage: test
+      os: osx
+      env: TOXENV=py38
+      before_install:
+        - ulimit -n
+        - ulimit -n 4096
+        - eval "$(pyenv init -)"
+        - pyenv install -l
+        - pyenv install --skip-existing 3.8.6
+        - pyenv global 3.8.6
         - pyenv rehash
         - python --version
         - python3 --version
