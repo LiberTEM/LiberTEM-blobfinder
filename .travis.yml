@@ -68,8 +68,8 @@ jobs:
         - ulimit -n 4096
         - eval "$(pyenv init -)"
         - pyenv install -l
-        - pyenv install --skip-existing 3.8.5
-        - pyenv global 3.8.5
+        - pyenv install --skip-existing 3.8.0
+        - pyenv global 3.8.0
         - pyenv rehash
         - python --version
         - python3 --version
