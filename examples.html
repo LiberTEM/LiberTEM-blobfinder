@@ -1,0 +1,161 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Examples &#8212; LiberTEM-blobfinder 0.5.0.dev0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Strain map of a transistor" href="strainmap-SiGe.html" />
+    <link rel="prev" title="Usage" href="usage.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="examples">
+<span id="id1"></span><h1>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h1>
+<p>See also <a class="reference external" href="https://github.com/LiberTEM/LiberTEM-blobfinder/tree/master/examples">https://github.com/LiberTEM/LiberTEM-blobfinder/tree/master/examples</a>
+for a folder with the notebooks.</p>
+<div class="section" id="strain-map-of-a-transistor">
+<h2>Strain map of a transistor<a class="headerlink" href="#strain-map-of-a-transistor" title="Permalink to this headline">¶</a></h2>
+<p>This example shows a typical strain map of a transistor with monocrystalline strained silicon.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="strainmap-SiGe.html">Strain map of a transistor</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="strainmap-SiGe.html#Opening-files-and-determining-basic-parameters">Opening files and determining basic parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strainmap-SiGe.html#Logsum-frame">Logsum frame</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strainmap-SiGe.html#Determine-base-lattice">Determine base lattice</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strainmap-SiGe.html#Adjust-matching-template">Adjust matching template</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strainmap-SiGe.html#Refine-the-lattice">Refine the lattice</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strainmap-SiGe.html#Post-processing-and-visualization">Post-processing and visualization</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="strain-map-of-polycrystalline-materials">
+<h2>Strain map of polycrystalline materials<a class="headerlink" href="#strain-map-of-polycrystalline-materials" title="Permalink to this headline">¶</a></h2>
+<p>LiberTEM allows to segment a scan into regions of interest to process grains
+with different orientations and lattice parameters separately. This example uses
+clustering of a feature vector to process a polycrystalline sample in a fully
+automated fashion.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="strainmap-poly.html">Refine lattice parameters on polycrystalline sample</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="strainmap-poly.html#Find-the-zero-order-peak">Find the zero order peak</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strainmap-poly.html#Generate-a-feature-vector">Generate a feature vector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strainmap-poly.html#Clustering">Clustering</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strainmap-poly.html#Determine-parameters-individually-for-each-cluster">Determine parameters individually for each cluster</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="strainmap-poly.html#Refine-lattice-parameters-within-each-cluster">Refine lattice parameters within each cluster</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="strainmap-poly.html#Assembling-the-complete-result">Assembling the complete result</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strainmap-poly.html#Result-visualization">Result visualization</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">LiberTEM-blobfinder</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#strain-map-of-a-transistor">Strain map of a transistor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#strain-map-of-polycrystalline-materials">Strain map of polycrystalline materials</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="usage.html" title="previous chapter">Usage</a></li>
+      <li>Next: <a href="strainmap-SiGe.html" title="next chapter">Strain map of a transistor</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;LiberTEM-blobfinder Authors.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/examples.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

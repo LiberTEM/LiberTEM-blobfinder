@@ -1,0 +1,396 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>libertem_blobfinder.udf.refinement &#8212; LiberTEM-blobfinder 0.5.0.dev0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for libertem_blobfinder.udf.refinement</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">libertem.utils</span> <span class="kn">import</span> <span class="n">frame_peaks</span>
+
+<span class="kn">import</span> <span class="nn">libertem.analysis.gridmatching</span> <span class="k">as</span> <span class="nn">grm</span>
+
+<span class="kn">from</span> <span class="nn">libertem_blobfinder.common.patterns</span> <span class="kn">import</span> <span class="n">MatchPattern</span>
+<span class="kn">from</span> <span class="nn">libertem_blobfinder.udf.correlation</span> <span class="kn">import</span> <span class="n">FastCorrelationUDF</span><span class="p">,</span>\
+    <span class="n">SparseCorrelationUDF</span><span class="p">,</span> <span class="n">FullFrameCorrelationUDF</span>
+
+
+<div class="viewcode-block" id="RefinementMixin"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.refinement.RefinementMixin">[docs]</a><span class="k">class</span> <span class="nc">RefinementMixin</span><span class="p">():</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    To be combined with a :class:`libertem_blobfinder.CorrelationUDF`</span>
+<span class="sd">    using multiple inheritance.</span>
+
+<span class="sd">    The mixin must come before the UDF in the inheritance list.</span>
+
+<span class="sd">    The subclasses implement a :code:`postprocess` method that calculates a</span>
+<span class="sd">    refinement of start_zero, start_a and start_b based on the correlation</span>
+<span class="sd">    result and populates the appropriate result buffers with this refinement</span>
+<span class="sd">    result.</span>
+
+<span class="sd">    This allows combining arbitrary implementations of correlation-based</span>
+<span class="sd">    matching with arbitrary implementations of the refinement by declaring an</span>
+<span class="sd">    ad-hoc class that inherits from one subclass of RefinementMixin and one</span>
+<span class="sd">    subclass of CorrelationUDF.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+<div class="viewcode-block" id="RefinementMixin.get_result_buffers"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.refinement.RefinementMixin.get_result_buffers">[docs]</a>    <span class="k">def</span> <span class="nf">get_result_buffers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This adds :code:`zero`, :code:`a`, :code:`b`, :code:`selector`,</span>
+<span class="sd">        :code:`error` to the superclass result buffer declaration.</span>
+
+<span class="sd">        :code:`zero`, :code:`a`, :code:`b`:</span>
+<span class="sd">            Grid refinement parameters for each frame.</span>
+<span class="sd">        :code:`selector`:</span>
+<span class="sd">            Boolean mask of the peaks that were used in the fit.</span>
+<span class="sd">        :code:`error`:</span>
+<span class="sd">            Residual of the fit.</span>
+
+<span class="sd">        See source code for the exact buffer declaration.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">super_buffers</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_result_buffers</span><span class="p">()</span>
+        <span class="n">num_disks</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">peaks</span><span class="p">)</span>
+        <span class="n">my_buffers</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;zero&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">(</span>
+                <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;nav&quot;</span><span class="p">,</span> <span class="n">extra_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;float32&quot;</span>
+            <span class="p">),</span>
+            <span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">(</span>
+                <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;nav&quot;</span><span class="p">,</span> <span class="n">extra_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;float32&quot;</span>
+            <span class="p">),</span>
+            <span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">(</span>
+                <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;nav&quot;</span><span class="p">,</span> <span class="n">extra_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;float32&quot;</span>
+            <span class="p">),</span>
+            <span class="s1">&#39;selector&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">(</span>
+                <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;nav&quot;</span><span class="p">,</span> <span class="n">extra_shape</span><span class="o">=</span><span class="p">(</span><span class="n">num_disks</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;bool&quot;</span>
+            <span class="p">),</span>
+            <span class="s1">&#39;error&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">(</span>
+                <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;nav&quot;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;float32&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">}</span>
+        <span class="n">super_buffers</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">my_buffers</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">super_buffers</span></div>
+
+<div class="viewcode-block" id="RefinementMixin.apply_match"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.refinement.RefinementMixin.apply_match">[docs]</a>    <span class="k">def</span> <span class="nf">apply_match</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">match</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Override this method to change how a match is saved in the result</span>
+<span class="sd">        buffers, for example to support binned processing or ragged result</span>
+<span class="sd">        arrays.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span>
+        <span class="c1"># We cast from float64 to float32 here</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">zero</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">zero</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">a</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">a</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">b</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">b</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">selector</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">selector</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">error</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">error</span></div></div>
+
+
+<div class="viewcode-block" id="FastmatchMixin"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.refinement.FastmatchMixin">[docs]</a><span class="k">class</span> <span class="nc">FastmatchMixin</span><span class="p">(</span><span class="n">RefinementMixin</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Refinement using :meth:`~libertem.analysis.gridmatching.Matcher.fastmatch`</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+<div class="viewcode-block" id="FastmatchMixin.__init__"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.refinement.FastmatchMixin.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        matcher : libertem.analysis.gridmatching.Matcher</span>
+<span class="sd">            Instance of :class:`~libertem.analysis.gridmatching.Matcher`</span>
+<span class="sd">        start_zero : numpy.ndarray</span>
+<span class="sd">            Approximate value (y, x) in px for &quot;zero&quot; point (origin, zero order peak)</span>
+<span class="sd">        start_a : numpy.ndarray</span>
+<span class="sd">            Approximate value (y, x) in px for &quot;a&quot; vector.</span>
+<span class="sd">        start_b : numpy.ndarray</span>
+<span class="sd">            Approximate value (y, x) in px for &quot;b&quot; vector.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">postprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">postprocess</span><span class="p">()</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span>
+        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">centers</span><span class="p">)):</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">matcher</span><span class="o">.</span><span class="n">fastmatch</span><span class="p">(</span>
+                <span class="n">centers</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">centers</span><span class="p">[</span><span class="n">index</span><span class="p">],</span>
+                <span class="n">refineds</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">refineds</span><span class="p">[</span><span class="n">index</span><span class="p">],</span>
+                <span class="n">peak_values</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">peak_values</span><span class="p">[</span><span class="n">index</span><span class="p">],</span>
+                <span class="n">peak_elevations</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">peak_elevations</span><span class="p">[</span><span class="n">index</span><span class="p">],</span>
+                <span class="n">zero</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">start_zero</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_zero_shift</span><span class="p">(</span><span class="n">index</span><span class="p">),</span>
+                <span class="n">a</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">start_a</span><span class="p">,</span>
+                <span class="n">b</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">start_b</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">apply_match</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">match</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AffineMixin"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.refinement.AffineMixin">[docs]</a><span class="k">class</span> <span class="nc">AffineMixin</span><span class="p">(</span><span class="n">RefinementMixin</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Refinement using :meth:`~libertem.analysis.gridmatching.Matcher.affinematch`</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+<div class="viewcode-block" id="AffineMixin.__init__"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.refinement.AffineMixin.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        matcher : libertem.analysis.gridmatching.Matcher</span>
+<span class="sd">            Instance of :class:`~libertem.analysis.gridmatching.Matcher`</span>
+<span class="sd">        indices : numpy.ndarray</span>
+<span class="sd">            List of indices [(h1, k1), (h2, k2), ...] of all peaks. The indices can be</span>
+<span class="sd">            non-integer and relative to any base vectors, including virtual ones like</span>
+<span class="sd">            (1, 0); (0, 1). See documentation of</span>
+<span class="sd">            :meth:`~libertem.analysis.gridmatching.Matcher.affinematch` for details.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">postprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">postprocess</span><span class="p">()</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span>
+        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">centers</span><span class="p">)):</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">matcher</span><span class="o">.</span><span class="n">affinematch</span><span class="p">(</span>
+                <span class="n">centers</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">centers</span><span class="p">[</span><span class="n">index</span><span class="p">],</span>
+                <span class="n">refineds</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">refineds</span><span class="p">[</span><span class="n">index</span><span class="p">],</span>
+                <span class="n">peak_values</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">peak_values</span><span class="p">[</span><span class="n">index</span><span class="p">],</span>
+                <span class="n">peak_elevations</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">peak_elevations</span><span class="p">[</span><span class="n">index</span><span class="p">],</span>
+                <span class="n">indices</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">indices</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">apply_match</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">match</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="run_refine"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.refinement.run_refine">[docs]</a><span class="k">def</span> <span class="nf">run_refine</span><span class="p">(</span>
+        <span class="n">ctx</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">zero</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">match_pattern</span><span class="p">:</span> <span class="n">MatchPattern</span><span class="p">,</span> <span class="n">matcher</span><span class="p">:</span> <span class="n">grm</span><span class="o">.</span><span class="n">Matcher</span><span class="p">,</span>
+        <span class="n">correlation</span><span class="o">=</span><span class="s1">&#39;fast&#39;</span><span class="p">,</span> <span class="n">match</span><span class="o">=</span><span class="s1">&#39;fast&#39;</span><span class="p">,</span> <span class="n">indices</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">zero_shift</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">roi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">progress</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Wrapper function to refine the given lattice for each frame by calculating</span>
+<span class="sd">    approximate peak positions and refining them for each frame using a</span>
+<span class="sd">    combination of :class:`libertem_blobfinder.CorrelationUDF` and</span>
+<span class="sd">    :class:`libertem_blobfinder.RefinementMixin`.</span>
+
+<span class="sd">    .. versionchanged:: 0.3.0</span>
+<span class="sd">        Support for :class:`FullFrameCorrelationUDF`</span>
+<span class="sd">        through parameter :code:`correlation = &#39;fullframe&#39;`</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    ctx : libertem.api.Context</span>
+<span class="sd">        Instance of a LiberTEM :class:`~libertem.api.Context`</span>
+<span class="sd">    dataset : libertem.io.dataset.base.DataSet</span>
+<span class="sd">        Instance of a :class:`~libertem.io.dataset.base.DataSet`</span>
+<span class="sd">    zero : numpy.ndarray</span>
+<span class="sd">        Approximate value for &quot;zero&quot; point (y, x) in px (origin, zero order</span>
+<span class="sd">        peak)</span>
+<span class="sd">    a : numpy.ndarray</span>
+<span class="sd">        Approximate value for &quot;a&quot; vector (y, x) in px.</span>
+<span class="sd">    b : numpy.ndarray</span>
+<span class="sd">        Approximate value for &quot;b&quot; vector (y, x) in px.</span>
+<span class="sd">    match_pattern : MatchPattern</span>
+<span class="sd">        Instance of :class:`~MatchPattern`</span>
+<span class="sd">    matcher : libertem.analysis.gridmatching.Matcher</span>
+<span class="sd">        Instance of :class:`~libertem.analysis.gridmatching.Matcher` to perform the matching</span>
+<span class="sd">    correlation : {&#39;fast&#39;, &#39;sparse&#39;, &#39;fullframe&#39;}, optional</span>
+<span class="sd">        &#39;fast&#39;, &#39;sparse&#39; or &#39;fullframe&#39; to select :class:`~FastCorrelationUDF`,</span>
+<span class="sd">        :class:`~SparseCorrelationUDF` or :class:`~FullFrameCorrelationUDF`</span>
+<span class="sd">    match : {&#39;fast&#39;, &#39;affine&#39;}, optional</span>
+<span class="sd">        &#39;fast&#39; or &#39;affine&#39; to select</span>
+<span class="sd">        :class:`~FastmatchMixin` or :class:`~AffineMixin`</span>
+<span class="sd">    indices : numpy.ndarray, optional</span>
+<span class="sd">        Indices to refine. This is trimmed down to</span>
+<span class="sd">        positions within the frame. As a convenience, for the indices parameter</span>
+<span class="sd">        this function accepts both shape (n, 2) and (2, n, m) so that</span>
+<span class="sd">        numpy.mgrid[h:k, i:j] works directly to specify indices. This saves</span>
+<span class="sd">        boilerplate code when using this function.</span>
+<span class="sd">        Default: numpy.mgrid[-10:10, -10:10].</span>
+<span class="sd">    steps : int, optional</span>
+<span class="sd">        Only for correlation == &#39;sparse&#39;: Correlation steps. See</span>
+<span class="sd">        :meth:`~SparseCorelationUDF.__init__` for</span>
+<span class="sd">        details.</span>
+<span class="sd">    zero_shift : Union[AUXBufferWrapper, numpy.ndarray, None], optional</span>
+<span class="sd">        Zero shift, for example descan error. Can be :code:`None`, :code:`numpy.array((y, x))`</span>
+<span class="sd">        or AUX data with :code:`(y, x)` for each frame. Only supported for correlation methods</span>
+<span class="sd">        :code:`fast` and `fullframe`.</span>
+<span class="sd">    roi : numpy.ndarray, optional</span>
+<span class="sd">        ROI for :meth:`~libertem.api.Context.run_udf`</span>
+<span class="sd">    progress : bool, optional</span>
+<span class="sd">        Show progress bar. Default :code:`False`</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    result : Dict[str, BufferWrapper]</span>
+<span class="sd">        Result buffers of the UDF. See</span>
+<span class="sd">        :meth:`libertem_blobfinder.correlation.CorrelationUDF.get_result_buffers` and</span>
+<span class="sd">        :meth:`RefinementMixin.get_result_buffers` for details on the available</span>
+<span class="sd">        buffers.</span>
+<span class="sd">    used_indices : numpy.ndarray</span>
+<span class="sd">        The peak indices that were within the frame.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; dataset = ctx.load(</span>
+<span class="sd">    ...     filetype=&quot;memory&quot;,</span>
+<span class="sd">    ...     data=np.zeros(shape=(2, 2, 128, 128), dtype=np.float32)</span>
+<span class="sd">    ... )</span>
+<span class="sd">    &gt;&gt;&gt; (result, used_indices) = run_refine(</span>
+<span class="sd">    ...     ctx, dataset,</span>
+<span class="sd">    ...     zero=(64, 64), a=(1, 0), b=(0, 1),</span>
+<span class="sd">    ...     match_pattern=libertem_blobfinder.common.patterns.RadialGradient(radius=4),</span>
+<span class="sd">    ...     matcher=grm.Matcher()</span>
+<span class="sd">    ... )</span>
+<span class="sd">    &gt;&gt;&gt; result[&#39;centers&#39;].data  #doctest: +ELLIPSIS</span>
+<span class="sd">    array(...)</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">indices</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mgrid</span><span class="p">[</span><span class="o">-</span><span class="mi">10</span><span class="p">:</span><span class="mi">11</span><span class="p">,</span> <span class="o">-</span><span class="mi">10</span><span class="p">:</span><span class="mi">11</span><span class="p">]</span>
+
+    <span class="p">(</span><span class="n">fy</span><span class="p">,</span> <span class="n">fx</span><span class="p">)</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">sig</span><span class="p">)</span>
+
+    <span class="n">indices</span><span class="p">,</span> <span class="n">peaks</span> <span class="o">=</span> <span class="n">frame_peaks</span><span class="p">(</span>
+        <span class="n">fy</span><span class="o">=</span><span class="n">fy</span><span class="p">,</span> <span class="n">fx</span><span class="o">=</span><span class="n">fx</span><span class="p">,</span> <span class="n">zero</span><span class="o">=</span><span class="n">zero</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="n">b</span><span class="p">,</span>
+        <span class="n">r</span><span class="o">=</span><span class="n">match_pattern</span><span class="o">.</span><span class="n">search</span><span class="p">,</span> <span class="n">indices</span><span class="o">=</span><span class="n">indices</span>
+    <span class="p">)</span>
+    <span class="n">peaks</span> <span class="o">=</span> <span class="n">peaks</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;int&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">correlation</span> <span class="o">==</span> <span class="s1">&#39;fast&#39;</span><span class="p">:</span>
+        <span class="n">method</span> <span class="o">=</span> <span class="n">FastCorrelationUDF</span>
+    <span class="k">elif</span> <span class="n">correlation</span> <span class="o">==</span> <span class="s1">&#39;sparse&#39;</span><span class="p">:</span>
+        <span class="n">method</span> <span class="o">=</span> <span class="n">SparseCorrelationUDF</span>
+    <span class="k">elif</span> <span class="n">correlation</span> <span class="o">==</span> <span class="s1">&#39;fullframe&#39;</span><span class="p">:</span>
+        <span class="n">method</span> <span class="o">=</span> <span class="n">FullFrameCorrelationUDF</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Unknown correlation method </span><span class="si">%s</span><span class="s2">. Supported are &#39;fast&#39; and &#39;sparse&#39;&quot;</span> <span class="o">%</span> <span class="n">correlation</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">match</span> <span class="o">==</span> <span class="s1">&#39;affine&#39;</span><span class="p">:</span>
+        <span class="n">mixin</span> <span class="o">=</span> <span class="n">AffineMixin</span>
+    <span class="k">elif</span> <span class="n">match</span> <span class="o">==</span> <span class="s1">&#39;fast&#39;</span><span class="p">:</span>
+        <span class="n">mixin</span> <span class="o">=</span> <span class="n">FastmatchMixin</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Unknown match method </span><span class="si">%s</span><span class="s2">. Supported are &#39;fast&#39; and &#39;affine&#39;&quot;</span> <span class="o">%</span> <span class="n">match</span>
+        <span class="p">)</span>
+
+    <span class="c1"># The inheritance order matters: FIRST the mixin, which calls</span>
+    <span class="c1"># the super class methods.</span>
+    <span class="k">class</span> <span class="nc">MyUDF</span><span class="p">(</span><span class="n">mixin</span><span class="p">,</span> <span class="n">method</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="n">udf</span> <span class="o">=</span> <span class="n">MyUDF</span><span class="p">(</span>
+        <span class="n">peaks</span><span class="o">=</span><span class="n">peaks</span><span class="p">,</span>
+        <span class="n">indices</span><span class="o">=</span><span class="n">indices</span><span class="p">,</span>
+        <span class="n">start_zero</span><span class="o">=</span><span class="n">zero</span><span class="p">,</span>
+        <span class="n">start_a</span><span class="o">=</span><span class="n">a</span><span class="p">,</span>
+        <span class="n">start_b</span><span class="o">=</span><span class="n">b</span><span class="p">,</span>
+        <span class="n">match_pattern</span><span class="o">=</span><span class="n">match_pattern</span><span class="p">,</span>
+        <span class="n">matcher</span><span class="o">=</span><span class="n">matcher</span><span class="p">,</span>
+        <span class="n">steps</span><span class="o">=</span><span class="n">steps</span><span class="p">,</span>
+        <span class="n">zero_shift</span><span class="o">=</span><span class="n">zero_shift</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">run_udf</span><span class="p">(</span>
+        <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span>
+        <span class="n">udf</span><span class="o">=</span><span class="n">udf</span><span class="p">,</span>
+        <span class="n">roi</span><span class="o">=</span><span class="n">roi</span><span class="p">,</span>
+        <span class="n">progress</span><span class="o">=</span><span class="n">progress</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">indices</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">LiberTEM-blobfinder</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../acknowledgments.html">Acknowledgments</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;LiberTEM-blobfinder Authors.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

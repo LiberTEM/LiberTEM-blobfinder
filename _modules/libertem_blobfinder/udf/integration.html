@@ -1,0 +1,208 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>libertem_blobfinder.udf.integration &#8212; LiberTEM-blobfinder 0.5.0.dev0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for libertem_blobfinder.udf.integration</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">libertem.udf.base</span> <span class="kn">import</span> <span class="n">UDF</span>
+
+<span class="kn">from</span> <span class="nn">libertem_blobfinder.base.correlation</span> <span class="kn">import</span> <span class="n">crop_disks_from_frame</span><span class="p">,</span> <span class="n">allocate_crop_bufs</span>
+
+
+<div class="viewcode-block" id="IntegrationUDF"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.integration.IntegrationUDF">[docs]</a><span class="k">class</span> <span class="nc">IntegrationUDF</span><span class="p">(</span><span class="n">UDF</span><span class="p">):</span>
+<div class="viewcode-block" id="IntegrationUDF.__init__"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.integration.IntegrationUDF.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">centers</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Integrate peak intensity at positions that are specified for each frame.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        centers : AUXBufferWrapper</span>
+<span class="sd">            Peak positions (y, x) as AUX buffer wrapper of kind &quot;nav&quot;, extra_shape (num_peaks, 2)</span>
+<span class="sd">            and integer dtype.</span>
+<span class="sd">        pattern : libertem_blobfinder.common.patterns.MatchPattern</span>
+<span class="sd">            Match pattern with the weight for each pixels.</span>
+<span class="sd">            :class:`libertem_blobfinder.common.patterns.BackgroundSubtraction` or</span>
+<span class="sd">            :class:`libertem_blobfinder.common.patterns.Circular` can be good choices.</span>
+
+<span class="sd">        Example</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        &gt;&gt;&gt; from libertem_blobfinder.udf.integration import IntegrationUDF</span>
+<span class="sd">        &gt;&gt;&gt; from libertem_blobfinder.common.patterns import BackgroundSubtraction</span>
+
+<span class="sd">        &gt;&gt;&gt; nav_shape = tuple(dataset.shape.nav)</span>
+<span class="sd">        &gt;&gt;&gt; sig_shape = tuple(dataset.shape.sig)</span>
+<span class="sd">        &gt;&gt;&gt; extra_shape = (3, 2)  # three peaks with coordinates (y, x)</span>
+<span class="sd">        &gt;&gt;&gt; peaks_shape = nav_shape + extra_shape</span>
+
+<span class="sd">        &gt;&gt;&gt; # Generate some random positions as an example</span>
+<span class="sd">        &gt;&gt;&gt; peaks = np.random.randint(low=0, high=np.min(sig_shape), size=peaks_shape)</span>
+
+<span class="sd">        &gt;&gt;&gt; # Create an AuxBufferWrapper for the peaks</span>
+<span class="sd">        &gt;&gt;&gt; centers = IntegrationUDF.aux_data(</span>
+<span class="sd">        ...     data=peaks,</span>
+<span class="sd">        ...     kind=&#39;nav&#39;,</span>
+<span class="sd">        ...     dtype=np.int,</span>
+<span class="sd">        ...     extra_shape=extra_shape</span>
+<span class="sd">        ... )</span>
+
+<span class="sd">        &gt;&gt;&gt; udf = IntegrationUDF(</span>
+<span class="sd">        ...     centers=centers,</span>
+<span class="sd">        ...     pattern=BackgroundSubtraction(radius=5, radius_outer=6)</span>
+<span class="sd">        ... )</span>
+
+<span class="sd">        &gt;&gt;&gt; res = ctx.run_udf(udf=udf, dataset=dataset)</span>
+
+<span class="sd">        &gt;&gt;&gt; nav_shape</span>
+<span class="sd">        (16, 16)</span>
+<span class="sd">        &gt;&gt;&gt; # Integration result for each frame and peak</span>
+<span class="sd">        &gt;&gt;&gt; res[&#39;integration&#39;].data.shape</span>
+<span class="sd">        (16, 16, 3)</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">centers</span><span class="o">=</span><span class="n">centers</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="n">pattern</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="IntegrationUDF.get_result_buffers"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.integration.IntegrationUDF.get_result_buffers">[docs]</a>    <span class="k">def</span> <span class="nf">get_result_buffers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :code:`integration`:</span>
+<span class="sd">            Integrated intensity for each peak. Kind &quot;nav&quot;, extra_shape (num_peaks, )</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">result_type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">input_dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;integration&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">(</span>
+                <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;nav&#39;</span><span class="p">,</span> <span class="n">extra_shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">centers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="p">),</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span>
+            <span class="p">)</span>
+        <span class="p">}</span></div>
+
+<div class="viewcode-block" id="IntegrationUDF.get_task_data"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.integration.IntegrationUDF.get_task_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_task_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">n_peaks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">centers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pattern</span>
+        <span class="n">crop_size</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">get_crop_size</span><span class="p">()</span>
+        <span class="n">pattern</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">get_mask</span><span class="p">(</span><span class="n">sig_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">crop_size</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">crop_size</span><span class="p">))</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">result_type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">input_dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">crop_bufs</span> <span class="o">=</span> <span class="n">allocate_crop_bufs</span><span class="p">(</span><span class="n">crop_size</span><span class="p">,</span> <span class="n">n_peaks</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mf">1e12</span><span class="p">)</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;crop_bufs&#39;</span><span class="p">:</span> <span class="n">crop_bufs</span><span class="p">,</span>
+            <span class="s1">&#39;pattern&#39;</span><span class="p">:</span> <span class="n">pattern</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">kwargs</span></div>
+
+<div class="viewcode-block" id="IntegrationUDF.process_frame"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.integration.IntegrationUDF.process_frame">[docs]</a>    <span class="k">def</span> <span class="nf">process_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">crop_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pattern</span><span class="o">.</span><span class="n">get_crop_size</span><span class="p">()</span>
+        <span class="n">crop_disks_from_frame</span><span class="p">(</span>
+            <span class="n">peaks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">centers</span><span class="p">,</span>
+            <span class="n">frame</span><span class="o">=</span><span class="n">frame</span><span class="p">,</span>
+            <span class="n">crop_size</span><span class="o">=</span><span class="n">crop_size</span><span class="p">,</span>
+            <span class="n">out_crop_bufs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">task_data</span><span class="o">.</span><span class="n">crop_bufs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">integration</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">task_data</span><span class="o">.</span><span class="n">crop_bufs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_data</span><span class="o">.</span><span class="n">pattern</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+        <span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">LiberTEM-blobfinder</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../acknowledgments.html">Acknowledgments</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;LiberTEM-blobfinder Authors.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

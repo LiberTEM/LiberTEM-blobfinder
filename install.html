@@ -1,0 +1,150 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Installation &#8212; LiberTEM-blobfinder 0.5.0.dev0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Usage" href="usage.html" />
+    <link rel="prev" title="LiberTEM-blobfinder" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="installation">
+<span id="id1"></span><h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>See also <a class="reference external" href="https://libertem.github.io/LiberTEM/install.html">general LiberTEM installation instructions</a> for information on
+setting up an environment for LiberTEM.</p>
+</div>
+<p>LiberTEM-blobfinder is designed to be installable without the main LiberTEM
+package to use some of the functionality in other projects. Installing with</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>$ pip install libertem-blobfinder
+</pre></div>
+</div>
+<p>only installs a minimum set of dependencies for <code class="xref py py-mod docutils literal notranslate"><span class="pre">libertem_blobfinder.base</span></code>.
+Optional dependencies are managed through extras. The full set of dependencies
+can be installed with</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>$ pip install libertem-blobfinder<span class="o">[</span>pyfftw,common,udf<span class="o">]</span>
+</pre></div>
+</div>
+<p>The extra <code class="code docutils literal notranslate"><span class="pre">common</span></code> installs dependencies for
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">libertem_blobfinder.common</span></code>, and <code class="code docutils literal notranslate"><span class="pre">udf</span></code> for
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">libertem_blobfinder.udf</span></code>. LiberTEM-blobfinder can optionally use PyFFTW
+instead of the built-in NumPy FFT for fast Fourier transforms.</p>
+<p>Please note that this package is part of a <a class="reference external" href="https://github.com/LiberTEM/LiberTEM/issues/261">larger restructuring effort for
+LiberTEM</a>. That means changes
+in the set of dependencies and import locations can be expected.</p>
+<div class="section" id="installing-from-a-git-clone">
+<h2>Installing from a Git clone<a class="headerlink" href="#installing-from-a-git-clone" title="Permalink to this headline">¶</a></h2>
+<p>For using the latest features or development work, you can install from a Git clone:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>$ git clone https://github.com/LiberTEM/LiberTEM-blobfinder
+$ <span class="nb">cd</span> LiberTEM-blobfinder
+$ pip install -e .
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">LiberTEM-blobfinder</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#installing-from-a-git-clone">Installing from a Git clone</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">LiberTEM-blobfinder</a></li>
+      <li>Next: <a href="usage.html" title="next chapter">Usage</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;LiberTEM-blobfinder Authors.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/install.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,519 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>libertem_blobfinder.udf.correlation &#8212; LiberTEM-blobfinder 0.5.0.dev0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for libertem_blobfinder.udf.correlation</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">functools</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">libertem.udf</span> <span class="kn">import</span> <span class="n">UDF</span>
+<span class="kn">import</span> <span class="nn">libertem.masks</span> <span class="k">as</span> <span class="nn">masks</span>
+<span class="kn">from</span> <span class="nn">libertem.common.container</span> <span class="kn">import</span> <span class="n">MaskContainer</span>
+
+<span class="kn">from</span> <span class="nn">libertem_blobfinder.common.patterns</span> <span class="kn">import</span> <span class="n">MatchPattern</span>
+<span class="kn">import</span> <span class="nn">libertem_blobfinder.base.correlation</span> <span class="k">as</span> <span class="nn">ltbc</span>
+<span class="kn">from</span> <span class="nn">libertem_blobfinder.common.correlation</span> <span class="kn">import</span> <span class="n">get_peaks</span>
+
+
+<div class="viewcode-block" id="CorrelationUDF"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.correlation.CorrelationUDF">[docs]</a><span class="k">class</span> <span class="nc">CorrelationUDF</span><span class="p">(</span><span class="n">UDF</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Base class for peak correlation implementations</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+<div class="viewcode-block" id="CorrelationUDF.__init__"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.correlation.CorrelationUDF.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peaks</span><span class="p">,</span> <span class="n">zero_shift</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        peaks : numpy.ndarray</span>
+<span class="sd">            Numpy array of (y, x) coordinates with peak positions in px to correlate</span>
+<span class="sd">        zero_shift : Union[AUXBufferWrapper, numpy.ndarray, None], optional</span>
+<span class="sd">            Zero shift, for example descan error. Can be :code:`None`, :code:`numpy.array((y, x))`</span>
+<span class="sd">            or AUX data with :code:`(y, x)` for each frame.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">peaks</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">peaks</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span> <span class="n">zero_shift</span><span class="o">=</span><span class="n">zero_shift</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CorrelationUDF.get_result_buffers"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.correlation.CorrelationUDF.get_result_buffers">[docs]</a>    <span class="k">def</span> <span class="nf">get_result_buffers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The common buffers for all correlation methods.</span>
+
+<span class="sd">        :code:`centers`:</span>
+<span class="sd">            (y, x) integer positions.</span>
+<span class="sd">        :code:`refineds`:</span>
+<span class="sd">            (y, x) positions with subpixel refinement.</span>
+<span class="sd">        :code:`peak_values`:</span>
+<span class="sd">            Peak height in the log scaled frame.</span>
+<span class="sd">        :code:`peak_elevations`:</span>
+<span class="sd">            Peak quality (result of :meth:`peak_elevation`).</span>
+
+<span class="sd">        See source code for details of the buffer declaration.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">num_disks</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">peaks</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;centers&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">(</span>
+                <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;nav&quot;</span><span class="p">,</span> <span class="n">extra_shape</span><span class="o">=</span><span class="p">(</span><span class="n">num_disks</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;u2&quot;</span>
+            <span class="p">),</span>
+            <span class="s1">&#39;refineds&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">(</span>
+                <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;nav&quot;</span><span class="p">,</span> <span class="n">extra_shape</span><span class="o">=</span><span class="p">(</span><span class="n">num_disks</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;float32&quot;</span>
+            <span class="p">),</span>
+            <span class="s1">&#39;peak_values&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">(</span>
+                <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;nav&quot;</span><span class="p">,</span> <span class="n">extra_shape</span><span class="o">=</span><span class="p">(</span><span class="n">num_disks</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;float32&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="s1">&#39;peak_elevations&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">(</span>
+                <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;nav&quot;</span><span class="p">,</span> <span class="n">extra_shape</span><span class="o">=</span><span class="p">(</span><span class="n">num_disks</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;float32&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">}</span></div>
+
+<div class="viewcode-block" id="CorrelationUDF.output_buffers"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.correlation.CorrelationUDF.output_buffers">[docs]</a>    <span class="k">def</span> <span class="nf">output_buffers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        This function allows abstraction of the result buffers from</span>
+<span class="sd">        the default implementation in :meth:`get_result_buffers`.</span>
+
+<span class="sd">        Override this function if you wish to redirect the results to different</span>
+<span class="sd">        buffers, for example ragged arrays or binned processing.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">centers</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">refineds</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">peak_values</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">peak_elevations</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">postprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">get_peaks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">peaks</span>
+
+    <span class="k">def</span> <span class="nf">get_zero_shift</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">zero_shift</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">index</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Called when masked with view</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">zero_shift</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Called when not masked, in postprocess() etc.</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">zero_shift</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="FastCorrelationUDF"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.correlation.FastCorrelationUDF">[docs]</a><span class="k">class</span> <span class="nc">FastCorrelationUDF</span><span class="p">(</span><span class="n">CorrelationUDF</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Fourier-based fast correlation-based refinement of peak positions within a search frame</span>
+<span class="sd">    for each peak.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+<div class="viewcode-block" id="FastCorrelationUDF.__init__"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.correlation.FastCorrelationUDF.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peaks</span><span class="p">,</span> <span class="n">match_pattern</span><span class="p">,</span> <span class="n">zero_shift</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        peaks : numpy.ndarray</span>
+<span class="sd">            Numpy array of (y, x) coordinates with peak positions in px to correlate</span>
+<span class="sd">        match_pattern : MatchPattern</span>
+<span class="sd">            Instance of :class:`~libertem_blobfinder.MatchPattern`</span>
+<span class="sd">        zero_shift : Union[AUXBufferWrapper, numpy.ndarray, None], optional</span>
+<span class="sd">            Zero shift, for example descan error. Can be :code:`None`, :code:`numpy.array((y, x))`</span>
+<span class="sd">            or AUX data with :code:`(y, x)` for each frame.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># For testing purposes, allow to inject a different limit via</span>
+        <span class="c1"># an internal kwarg</span>
+        <span class="c1"># It has to come through kwarg because of how UDFs are run</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">limit</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;__limit&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="o">**</span><span class="mi">19</span><span class="p">)</span>  <span class="c1"># 1/2 MB</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">peaks</span><span class="o">=</span><span class="n">peaks</span><span class="p">,</span> <span class="n">match_pattern</span><span class="o">=</span><span class="n">match_pattern</span><span class="p">,</span> <span class="n">zero_shift</span><span class="o">=</span><span class="n">zero_shift</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">get_task_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;&quot;</span>
+        <span class="n">n_peaks</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_peaks</span><span class="p">())</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_pattern</span><span class="p">()</span>
+        <span class="n">crop_size</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">get_crop_size</span><span class="p">()</span>
+        <span class="n">template</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="n">sig_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">crop_size</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">crop_size</span><span class="p">))</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">result_type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">input_dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">crop_bufs</span> <span class="o">=</span> <span class="n">ltbc</span><span class="o">.</span><span class="n">allocate_crop_bufs</span><span class="p">(</span><span class="n">crop_size</span><span class="p">,</span> <span class="n">n_peaks</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">limit</span><span class="p">)</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;crop_bufs&#39;</span><span class="p">:</span> <span class="n">crop_bufs</span><span class="p">,</span>
+            <span class="s1">&#39;template&#39;</span><span class="p">:</span> <span class="n">template</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">kwargs</span>
+
+    <span class="k">def</span> <span class="nf">get_pattern</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">match_pattern</span>
+
+    <span class="k">def</span> <span class="nf">get_template</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_data</span><span class="o">.</span><span class="n">template</span>
+
+    <span class="k">def</span> <span class="nf">process_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+        <span class="n">match_pattern</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_pattern</span><span class="p">()</span>
+        <span class="p">(</span><span class="n">centers</span><span class="p">,</span> <span class="n">refineds</span><span class="p">,</span> <span class="n">peak_values</span><span class="p">,</span> <span class="n">peak_elevations</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_buffers</span><span class="p">()</span>
+        <span class="n">ltbc</span><span class="o">.</span><span class="n">process_frame_fast</span><span class="p">(</span>
+            <span class="n">template</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_template</span><span class="p">(),</span> <span class="n">crop_size</span><span class="o">=</span><span class="n">match_pattern</span><span class="o">.</span><span class="n">get_crop_size</span><span class="p">(),</span>
+            <span class="n">frame</span><span class="o">=</span><span class="n">frame</span><span class="p">,</span> <span class="n">peaks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_peaks</span><span class="p">()</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_zero_shift</span><span class="p">())</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">),</span>
+            <span class="n">out_centers</span><span class="o">=</span><span class="n">centers</span><span class="p">,</span> <span class="n">out_refineds</span><span class="o">=</span><span class="n">refineds</span><span class="p">,</span>
+            <span class="n">out_heights</span><span class="o">=</span><span class="n">peak_values</span><span class="p">,</span> <span class="n">out_elevations</span><span class="o">=</span><span class="n">peak_elevations</span><span class="p">,</span>
+            <span class="n">crop_bufs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">task_data</span><span class="o">.</span><span class="n">crop_bufs</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FullFrameCorrelationUDF"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.correlation.FullFrameCorrelationUDF">[docs]</a><span class="k">class</span> <span class="nc">FullFrameCorrelationUDF</span><span class="p">(</span><span class="n">CorrelationUDF</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Fourier-based correlation-based refinement of peak positions within a search</span>
+<span class="sd">    frame for each peak using a single correlation step. This can be faster for</span>
+<span class="sd">    correlating a large number of peaks in small frames in comparison to</span>
+<span class="sd">    :class:`FastCorrelationUDF`. However, it is more sensitive to interference</span>
+<span class="sd">    from strong peaks next to the peak of interest.</span>
+
+<span class="sd">    .. versionadded:: 0.3.0</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+<div class="viewcode-block" id="FullFrameCorrelationUDF.__init__"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.correlation.FullFrameCorrelationUDF.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peaks</span><span class="p">,</span> <span class="n">match_pattern</span><span class="p">,</span> <span class="n">zero_shift</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        peaks : numpy.ndarray</span>
+<span class="sd">            Numpy array of (y, x) coordinates with peak positions in px to correlate</span>
+<span class="sd">        match_pattern : MatchPattern</span>
+<span class="sd">            Instance of :class:`~libertem_blobfinder.MatchPattern`</span>
+<span class="sd">        zero_shift : Union[AUXBufferWrapper, numpy.ndarray, None], optional</span>
+<span class="sd">            Zero shift, for example descan error. Can be :code:`None`, :code:`numpy.array((y, x))`</span>
+<span class="sd">            or AUX data with :code:`(y, x)` for each frame.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># For testing purposes, allow to inject a different limit via</span>
+        <span class="c1"># an internal kwarg</span>
+        <span class="c1"># It has to come through kwarg because of how UDFs are run</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">limit</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;__limit&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="o">**</span><span class="mi">19</span><span class="p">)</span>  <span class="c1"># 1/2 MB</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">peaks</span><span class="o">=</span><span class="n">peaks</span><span class="p">,</span> <span class="n">match_pattern</span><span class="o">=</span><span class="n">match_pattern</span><span class="p">,</span> <span class="n">zero_shift</span><span class="o">=</span><span class="n">zero_shift</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">get_task_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;&quot;</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_pattern</span><span class="p">()</span>
+        <span class="n">n_peaks</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">peaks</span><span class="p">)</span>
+        <span class="n">template</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="n">sig_shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">dataset_shape</span><span class="o">.</span><span class="n">sig</span><span class="p">)</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">result_type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">input_dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">frame_buf</span> <span class="o">=</span> <span class="n">ltbc</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">dataset_shape</span><span class="o">.</span><span class="n">sig</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">crop_size</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">get_crop_size</span><span class="p">()</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;template&#39;</span><span class="p">:</span> <span class="n">template</span><span class="p">,</span>
+            <span class="s1">&#39;frame_buf&#39;</span><span class="p">:</span> <span class="n">frame_buf</span><span class="p">,</span>
+            <span class="s1">&#39;buf_count&#39;</span><span class="p">:</span> <span class="n">ltbc</span><span class="o">.</span><span class="n">get_buf_count</span><span class="p">(</span><span class="n">crop_size</span><span class="p">,</span> <span class="n">n_peaks</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">limit</span><span class="p">),</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">kwargs</span>
+
+    <span class="k">def</span> <span class="nf">get_pattern</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">match_pattern</span>
+
+    <span class="k">def</span> <span class="nf">get_template</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_data</span><span class="o">.</span><span class="n">template</span>
+
+    <span class="k">def</span> <span class="nf">process_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+        <span class="n">match_pattern</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_pattern</span><span class="p">()</span>
+        <span class="p">(</span><span class="n">centers</span><span class="p">,</span> <span class="n">refineds</span><span class="p">,</span> <span class="n">peak_values</span><span class="p">,</span> <span class="n">peak_elevations</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_buffers</span><span class="p">()</span>
+        <span class="n">ltbc</span><span class="o">.</span><span class="n">process_frame_full</span><span class="p">(</span>
+            <span class="n">template</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_template</span><span class="p">(),</span>
+            <span class="n">crop_size</span><span class="o">=</span><span class="n">match_pattern</span><span class="o">.</span><span class="n">get_crop_size</span><span class="p">(),</span>
+            <span class="n">frame</span><span class="o">=</span><span class="n">frame</span><span class="p">,</span>
+            <span class="n">peaks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_peaks</span><span class="p">()</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_zero_shift</span><span class="p">())</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">),</span>
+            <span class="n">out_centers</span><span class="o">=</span><span class="n">centers</span><span class="p">,</span>
+            <span class="n">out_refineds</span><span class="o">=</span><span class="n">refineds</span><span class="p">,</span>
+            <span class="n">out_heights</span><span class="o">=</span><span class="n">peak_values</span><span class="p">,</span>
+            <span class="n">out_elevations</span><span class="o">=</span><span class="n">peak_elevations</span><span class="p">,</span>
+            <span class="n">frame_buf</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">task_data</span><span class="o">.</span><span class="n">frame_buf</span><span class="p">,</span>
+            <span class="n">buf_count</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">task_data</span><span class="o">.</span><span class="n">buf_count</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SparseCorrelationUDF"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.correlation.SparseCorrelationUDF">[docs]</a><span class="k">class</span> <span class="nc">SparseCorrelationUDF</span><span class="p">(</span><span class="n">CorrelationUDF</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Direct correlation using sparse matrices</span>
+
+<span class="sd">    This method allows to adjust the number of correlation steps independent of the template size.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+<div class="viewcode-block" id="SparseCorrelationUDF.__init__"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.correlation.SparseCorrelationUDF.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">peaks</span><span class="p">,</span> <span class="n">match_pattern</span><span class="p">,</span> <span class="n">steps</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        peaks : numpy.ndarray</span>
+<span class="sd">            Numpy array of (y, x) coordinates with peak positions in px to correlate</span>
+<span class="sd">        match_pattern : MatchPattern</span>
+<span class="sd">            Instance of :class:`~libertem_blobfinder.MatchPattern`</span>
+<span class="sd">        steps : int</span>
+<span class="sd">            The template is correlated with 2 * steps + 1 symmetrically around the peak position</span>
+<span class="sd">            in x and y direction. This defines the maximum shift that can be</span>
+<span class="sd">            detected. The number of calculations grows with the square of this value, that means</span>
+<span class="sd">            keeping this as small as the data allows speeds up the calculation.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">peaks</span><span class="o">=</span><span class="n">peaks</span><span class="p">,</span> <span class="n">match_pattern</span><span class="o">=</span><span class="n">match_pattern</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="n">steps</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">zero_shift</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Parameter zero_shift not supported for SparseCorrelationUDF&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SparseCorrelationUDF.get_result_buffers"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.correlation.SparseCorrelationUDF.get_result_buffers">[docs]</a>    <span class="k">def</span> <span class="nf">get_result_buffers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This method adds the :code:`corr` buffer to the result of</span>
+<span class="sd">        :meth:`CorrelationUDF.get_result_buffers`. See source code for the</span>
+<span class="sd">        exact buffer declaration.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">super_buffers</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_result_buffers</span><span class="p">()</span>
+        <span class="n">num_disks</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">peaks</span><span class="p">)</span>
+        <span class="n">steps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">steps</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">my_buffers</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;corr&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer</span><span class="p">(</span>
+                <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;nav&quot;</span><span class="p">,</span> <span class="n">extra_shape</span><span class="o">=</span><span class="p">(</span><span class="n">num_disks</span> <span class="o">*</span> <span class="n">steps</span><span class="o">**</span><span class="mi">2</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;float32&quot;</span>
+            <span class="p">),</span>
+        <span class="p">}</span>
+        <span class="n">super_buffers</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">my_buffers</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">super_buffers</span></div>
+
+    <span class="k">def</span> <span class="nf">get_task_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;&quot;</span>
+        <span class="n">match_pattern</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">match_pattern</span>
+        <span class="n">crop_size</span> <span class="o">=</span> <span class="n">match_pattern</span><span class="o">.</span><span class="n">get_crop_size</span><span class="p">()</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">crop_size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">crop_size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">template</span> <span class="o">=</span> <span class="n">match_pattern</span><span class="o">.</span><span class="n">get_mask</span><span class="p">(</span><span class="n">sig_shape</span><span class="o">=</span><span class="n">size</span><span class="p">)</span>
+        <span class="n">steps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">steps</span>
+        <span class="n">peak_offsetY</span><span class="p">,</span> <span class="n">peak_offsetX</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mgrid</span><span class="p">[</span><span class="o">-</span><span class="n">steps</span><span class="p">:</span><span class="n">steps</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="n">steps</span><span class="p">:</span><span class="n">steps</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">offsetY</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">peaks</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">+</span> <span class="n">peak_offsetY</span> <span class="o">-</span> <span class="n">crop_size</span>
+        <span class="n">offsetX</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">peaks</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">+</span> <span class="n">peak_offsetX</span> <span class="o">-</span> <span class="n">crop_size</span>
+
+        <span class="n">offsetY</span> <span class="o">=</span> <span class="n">offsetY</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        <span class="n">offsetX</span> <span class="o">=</span> <span class="n">offsetX</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+
+        <span class="n">stack</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+            <span class="n">masks</span><span class="o">.</span><span class="n">sparse_template_multi_stack</span><span class="p">,</span>
+            <span class="n">mask_index</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">offsetY</span><span class="p">)),</span>
+            <span class="n">offsetX</span><span class="o">=</span><span class="n">offsetX</span><span class="p">,</span>
+            <span class="n">offsetY</span><span class="o">=</span><span class="n">offsetY</span><span class="p">,</span>
+            <span class="n">template</span><span class="o">=</span><span class="n">template</span><span class="p">,</span>
+            <span class="n">imageSizeX</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">dataset_shape</span><span class="o">.</span><span class="n">sig</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">imageSizeY</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">dataset_shape</span><span class="o">.</span><span class="n">sig</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="c1"># CSC matrices in combination with transposed data are fastest</span>
+        <span class="n">container</span> <span class="o">=</span> <span class="n">MaskContainer</span><span class="p">(</span><span class="n">mask_factories</span><span class="o">=</span><span class="n">stack</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">use_sparse</span><span class="o">=</span><span class="s1">&#39;scipy.sparse.csc&#39;</span><span class="p">)</span>
+
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;mask_container&#39;</span><span class="p">:</span> <span class="n">container</span><span class="p">,</span>
+            <span class="s1">&#39;crop_size&#39;</span><span class="p">:</span> <span class="n">crop_size</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">kwargs</span>
+
+    <span class="k">def</span> <span class="nf">process_tile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tile</span><span class="p">):</span>
+        <span class="n">tile_slice</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">slice</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_data</span><span class="o">.</span><span class="n">mask_container</span>
+        <span class="n">tile_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">tile</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]),</span> <span class="n">tile</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">tile</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="p">)</span>
+        <span class="n">ltbc</span><span class="o">.</span><span class="n">log_scale</span><span class="p">(</span><span class="n">tile</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">tile</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">tile_t</span><span class="p">)</span>
+
+        <span class="n">sl</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">tile_slice</span><span class="p">,</span> <span class="n">transpose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">corr</span><span class="p">[:]</span> <span class="o">+=</span> <span class="n">sl</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">tile_t</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+<div class="viewcode-block" id="SparseCorrelationUDF.postprocess"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.correlation.SparseCorrelationUDF.postprocess">[docs]</a>    <span class="k">def</span> <span class="nf">postprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The correlation results are evaluated during postprocessing since this</span>
+<span class="sd">        implementation uses tiled processing where the correlations are</span>
+<span class="sd">        incomplete in :meth:`process_tile`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">steps</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">steps</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">corrmaps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">corr</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span>
+            <span class="o">-</span><span class="mi">1</span><span class="p">,</span>  <span class="c1"># frames</span>
+            <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">peaks</span><span class="p">),</span>  <span class="c1"># peaks</span>
+            <span class="n">steps</span><span class="p">,</span>  <span class="c1"># Y steps</span>
+            <span class="n">steps</span><span class="p">,</span>  <span class="c1"># X steps</span>
+        <span class="p">))</span>
+        <span class="n">peaks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">peaks</span>
+        <span class="p">(</span><span class="n">centers</span><span class="p">,</span> <span class="n">refineds</span><span class="p">,</span> <span class="n">peak_values</span><span class="p">,</span> <span class="n">peak_elevations</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_buffers</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">corrmaps</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">ltbc</span><span class="o">.</span><span class="n">evaluate_correlations</span><span class="p">(</span>
+                <span class="n">corrs</span><span class="o">=</span><span class="n">corrmaps</span><span class="p">[</span><span class="n">f</span><span class="p">],</span> <span class="n">peaks</span><span class="o">=</span><span class="n">peaks</span><span class="p">,</span> <span class="n">crop_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">steps</span><span class="p">,</span>
+                <span class="n">out_centers</span><span class="o">=</span><span class="n">centers</span><span class="p">[</span><span class="n">f</span><span class="p">],</span> <span class="n">out_refineds</span><span class="o">=</span><span class="n">refineds</span><span class="p">[</span><span class="n">f</span><span class="p">],</span>
+                <span class="n">out_heights</span><span class="o">=</span><span class="n">peak_values</span><span class="p">[</span><span class="n">f</span><span class="p">],</span> <span class="n">out_elevations</span><span class="o">=</span><span class="n">peak_elevations</span><span class="p">[</span><span class="n">f</span><span class="p">]</span>
+            <span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="run_fastcorrelation"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.correlation.run_fastcorrelation">[docs]</a><span class="k">def</span> <span class="nf">run_fastcorrelation</span><span class="p">(</span>
+        <span class="n">ctx</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">peaks</span><span class="p">,</span> <span class="n">match_pattern</span><span class="p">:</span> <span class="n">MatchPattern</span><span class="p">,</span> <span class="n">zero_shift</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">roi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">progress</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wrapper function to construct and run a :class:`FastCorrelationUDF`</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ctx : libertem.api.Context</span>
+<span class="sd">    dataset : libertem.io.dataset.base.DataSet</span>
+<span class="sd">    peaks : numpy.ndarray</span>
+<span class="sd">        List of peaks with (y, x) coordinates</span>
+<span class="sd">    match_pattern : libertem_blobfinder.patterns.MatchPattern</span>
+<span class="sd">    zero_shift : Union[AUXBufferWrapper, numpy.ndarray, None], optional</span>
+<span class="sd">        Zero shift, for example descan error. Can be :code:`None`, :code:`numpy.array((y, x))`</span>
+<span class="sd">        or AUX data with :code:`(y, x)` for each frame.</span>
+<span class="sd">    roi : numpy.ndarray, optional</span>
+<span class="sd">        Boolean mask of the navigation dimension to select region of interest (ROI)</span>
+<span class="sd">    progress : bool, optional</span>
+<span class="sd">        Show progress bar</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    buffers : Dict[libertem.common.buffers.BufferWrapper]</span>
+<span class="sd">        See :meth:`CorrelationUDF.get_result_buffers` for details.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">peaks</span> <span class="o">=</span> <span class="n">peaks</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
+    <span class="n">udf</span> <span class="o">=</span> <span class="n">FastCorrelationUDF</span><span class="p">(</span><span class="n">peaks</span><span class="o">=</span><span class="n">peaks</span><span class="p">,</span> <span class="n">match_pattern</span><span class="o">=</span><span class="n">match_pattern</span><span class="p">,</span> <span class="n">zero_shift</span><span class="o">=</span><span class="n">zero_shift</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ctx</span><span class="o">.</span><span class="n">run_udf</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> <span class="n">udf</span><span class="o">=</span><span class="n">udf</span><span class="p">,</span> <span class="n">roi</span><span class="o">=</span><span class="n">roi</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="n">progress</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="run_blobfinder"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.udf.correlation.run_blobfinder">[docs]</a><span class="k">def</span> <span class="nf">run_blobfinder</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">match_pattern</span><span class="p">:</span> <span class="n">MatchPattern</span><span class="p">,</span> <span class="n">num_peaks</span><span class="p">,</span> <span class="n">roi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wrapper function to find peaks in a dataset and refine their position using</span>
+<span class="sd">    :class:`FastCorrelationUDF`</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ctx : libertem.api.Context</span>
+<span class="sd">    dataset : libertem.io.dataset.base.DataSet</span>
+<span class="sd">    match_pattern : libertem_blobfinder.patterns.MatchPattern</span>
+<span class="sd">    num_peaks : int</span>
+<span class="sd">        Number of peaks to look for</span>
+<span class="sd">    roi : numpy.ndarray, optional</span>
+<span class="sd">        Boolean mask of the navigation dimension to select region of interest (ROI)</span>
+<span class="sd">    progress : bool, optional</span>
+<span class="sd">        Show progress bar</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    sum_result : numpy.ndarray</span>
+<span class="sd">        Log-scaled sum frame of the dataset/ROI</span>
+<span class="sd">    centers, refineds, peak_values, peak_elevations : libertem.common.buffers.BufferWrapper</span>
+<span class="sd">        See :meth:`CorrelationUDF.get_result_buffers` for details.</span>
+<span class="sd">    peaks : numpy.ndarray</span>
+<span class="sd">        List of found peaks with (y, x) coordinates</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sum_analysis</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">create_sum_analysis</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">)</span>
+    <span class="n">sum_result</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">sum_analysis</span><span class="p">,</span> <span class="n">roi</span><span class="o">=</span><span class="n">roi</span><span class="p">)</span>
+
+    <span class="n">sum_result</span> <span class="o">=</span> <span class="n">ltbc</span><span class="o">.</span><span class="n">log_scale</span><span class="p">(</span><span class="n">sum_result</span><span class="o">.</span><span class="n">intensity</span><span class="o">.</span><span class="n">raw_data</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">peaks</span> <span class="o">=</span> <span class="n">get_peaks</span><span class="p">(</span>
+        <span class="n">sum_result</span><span class="o">=</span><span class="n">sum_result</span><span class="p">,</span>
+        <span class="n">match_pattern</span><span class="o">=</span><span class="n">match_pattern</span><span class="p">,</span>
+        <span class="n">num_peaks</span><span class="o">=</span><span class="n">num_peaks</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">pass_2_results</span> <span class="o">=</span> <span class="n">run_fastcorrelation</span><span class="p">(</span>
+        <span class="n">ctx</span><span class="o">=</span><span class="n">ctx</span><span class="p">,</span>
+        <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span>
+        <span class="n">peaks</span><span class="o">=</span><span class="n">peaks</span><span class="p">,</span>
+        <span class="n">match_pattern</span><span class="o">=</span><span class="n">match_pattern</span><span class="p">,</span>
+        <span class="n">roi</span><span class="o">=</span><span class="n">roi</span><span class="p">,</span>
+        <span class="n">progress</span><span class="o">=</span><span class="n">progress</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">sum_result</span><span class="p">,</span> <span class="n">pass_2_results</span><span class="p">[</span><span class="s1">&#39;centers&#39;</span><span class="p">],</span>
+        <span class="n">pass_2_results</span><span class="p">[</span><span class="s1">&#39;refineds&#39;</span><span class="p">],</span> <span class="n">pass_2_results</span><span class="p">[</span><span class="s1">&#39;peak_values&#39;</span><span class="p">],</span>
+        <span class="n">pass_2_results</span><span class="p">[</span><span class="s1">&#39;peak_elevations&#39;</span><span class="p">],</span> <span class="n">peaks</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">LiberTEM-blobfinder</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../acknowledgments.html">Acknowledgments</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;LiberTEM-blobfinder Authors.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

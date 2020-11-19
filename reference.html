@@ -1,0 +1,1153 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reference &#8212; LiberTEM-blobfinder 0.5.0.dev0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Acknowledgments" href="acknowledgments.html" />
+    <link rel="prev" title="[Feature] Allow specifying per-frame origin shift" href="changelog/features/zeroshift.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="reference">
+<span id="blobfinder-api"></span><h1>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h1>
+<p>LiberTEM-blobfinder is structured into three parts:</p>
+<ol class="arabic simple">
+<li><p>A “base” package with numerics functions that work independent of LiberTEM.</p></li>
+<li><p>A “common” package that uses other “common” aspects of LiberTEM for convenience,
+but can be used independent of LiberTEM core facilities.</p></li>
+<li><p>A “udf” package with classes and functions to use this functionality with full
+LiberTEM integration.</p></li>
+</ol>
+<div class="section" id="basic-numerics-functions">
+<span id="blobfinder-base"></span><h2>Basic numerics functions<a class="headerlink" href="#basic-numerics-functions" title="Permalink to this headline">¶</a></h2>
+<p>These functions work independent of any LiberTEM infrastructure.</p>
+<span class="target" id="module-libertem_blobfinder.base.correlation"></span><dl class="py function">
+<dt id="libertem_blobfinder.base.correlation.allocate_crop_bufs">
+<code class="sig-prename descclassname">libertem_blobfinder.base.correlation.</code><code class="sig-name descname">allocate_crop_bufs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">crop_size</span></em>, <em class="sig-param"><span class="n">n_peaks</span></em>, <em class="sig-param"><span class="n">dtype</span></em>, <em class="sig-param"><span class="n">limit</span><span class="o">=</span><span class="default_value">524288</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/base/correlation.html#allocate_crop_bufs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.base.correlation.allocate_crop_bufs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Allocate buffer for stack of cropped peaks</p>
+<p>The size is optimized to fit within <code class="code docutils literal notranslate"><span class="pre">limit</span></code>. An aligned buffer for the FFT
+back-end is created if possible.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>crop_size</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – The cropped parts will have size (2 * crop-size, 2 * crop_size)</p></li>
+<li><p><strong>n_peaks</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Number of peaks</p></li>
+<li><p><strong>dtype</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v1.19)"><em>numpy.dtype</em></a>) – dtype of the buffer</p></li>
+<li><p><strong>limit</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Upper limit, default 1/2 MB to be L3 cache friendly</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>crop_bufs</strong> – Shape (n, 2*crop_size, 2*crop_size)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="libertem_blobfinder.base.correlation.do_correlations">
+<code class="sig-prename descclassname">libertem_blobfinder.base.correlation.</code><code class="sig-name descname">do_correlations</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">template</span></em>, <em class="sig-param"><span class="n">crop_parts</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/base/correlation.html#do_correlations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.base.correlation.do_correlations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the correlation of the pre-calculated template with a stack
+of cropped peaks using fast correlation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>template</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a>) – Real Fourier transform of the correlation pattern.
+The source pattern should have the same size as the cropped parts. Please note that
+the real Fourier transform (fft.rfft2) of the source pattern has a different shape!</p></li>
+<li><p><strong>crop_parts</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a>) – Stack of peaks cropped from the frame.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>corrs</strong> – Correlation of the correlation pattern and the peaks.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)">numpy.ndarray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="libertem_blobfinder.base.correlation.get_buf_count">
+<code class="sig-prename descclassname">libertem_blobfinder.base.correlation.</code><code class="sig-name descname">get_buf_count</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">crop_size</span></em>, <em class="sig-param"><span class="n">n_peaks</span></em>, <em class="sig-param"><span class="n">dtype</span></em>, <em class="sig-param"><span class="n">limit</span><span class="o">=</span><span class="default_value">524288</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/base/correlation.html#get_buf_count"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.base.correlation.get_buf_count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the optimal number of peaks in a stack to fit
+within the limit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>crop_size</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – The cropped parts will have size (2 * crop-size, 2 * crop_size)</p></li>
+<li><p><strong>n_peaks</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Number of peaks</p></li>
+<li><p><strong>dtype</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v1.19)"><em>numpy.dtype</em></a>) – dtype of the data for size calculation</p></li>
+<li><p><strong>limit</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Upper limit, default 1/2 MB to be L3 cache friendly</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="libertem_blobfinder.base.correlation.peak_elevation">
+<code class="sig-prename descclassname">libertem_blobfinder.base.correlation.</code><code class="sig-name descname">peak_elevation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">center</span></em>, <em class="sig-param"><span class="n">corrmap</span></em>, <em class="sig-param"><span class="n">height</span></em>, <em class="sig-param"><span class="n">r_min</span><span class="o">=</span><span class="default_value">1.5</span></em>, <em class="sig-param"><span class="n">r_max</span><span class="o">=</span><span class="default_value">inf</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/base/correlation.html#peak_elevation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.base.correlation.peak_elevation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the slope of the tightest cone around <code class="code docutils literal notranslate"><span class="pre">center</span></code> with height <code class="code docutils literal notranslate"><span class="pre">height</span></code>
+that touches <code class="code docutils literal notranslate"><span class="pre">corrmap</span></code> between <code class="code docutils literal notranslate"><span class="pre">r_min</span></code> and <code class="code docutils literal notranslate"><span class="pre">r_max</span></code>.</p>
+<p>The correlation of two disks – mask and perfect diffraction spot – has the shape of a cone.
+The function’s return value correlates with the quality of a correlation. Higher slope
+means a strong peak and
+no side maxima, while weak signal or side maxima lead to a flatter slope.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>center</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a>) – (y, x) coordinates of the center within the <code class="code docutils literal notranslate"><span class="pre">corrmap</span></code></p></li>
+<li><p><strong>corrmap</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a>) – Correlation map</p></li>
+<li><p><strong>height</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – The height is provided as a parameter since center can be float values from refinement
+and the height value is conveniently available from the calling function.</p></li>
+<li><p><strong>r_min</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em>, </em><em>optional</em>) – Masks out a small local plateau around the peak that would distort and dominate
+the calculation.</p></li>
+<li><p><strong>r_max</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em>, </em><em>optional</em>) – Mask out neighboring peaks if a large area with several legitimate peaks is
+correlated.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>elevation</strong> – Elevation of the tightest cone that fits the correlation map within the given
+parameter range.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="libertem_blobfinder.base.correlation.process_frame_fast">
+<code class="sig-prename descclassname">libertem_blobfinder.base.correlation.</code><code class="sig-name descname">process_frame_fast</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">template</span></em>, <em class="sig-param"><span class="n">crop_size</span></em>, <em class="sig-param"><span class="n">frame</span></em>, <em class="sig-param"><span class="n">peaks</span></em>, <em class="sig-param"><span class="n">out_centers</span></em>, <em class="sig-param"><span class="n">out_refineds</span></em>, <em class="sig-param"><span class="n">out_heights</span></em>, <em class="sig-param"><span class="n">out_elevations</span></em>, <em class="sig-param"><span class="n">crop_bufs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/base/correlation.html#process_frame_fast"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.base.correlation.process_frame_fast" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the parameters of peaks in a diffraction pattern by correlation with a template</p>
+<p>This function is designed to be used in an optimized pipeline with a pre-calculated
+Fourier transform of the match pattern and optional pre-allocated buffers.
+It is the engine of the <a class="reference internal" href="#libertem_blobfinder.udf.correlation.FastCorrelationUDF" title="libertem_blobfinder.udf.correlation.FastCorrelationUDF"><code class="xref py py-class docutils literal notranslate"><span class="pre">libertem_blobfinder.udf.correlation.FastCorrelationUDF</span></code></a> for
+stand-alone use independent of LiberTEM.</p>
+<p><a class="reference internal" href="#libertem_blobfinder.common.correlation.process_frames_fast" title="libertem_blobfinder.common.correlation.process_frames_fast"><code class="xref py py-meth docutils literal notranslate"><span class="pre">libertem_blobfinder.common.correlation.process_frames_fast()</span></code></a> offers a more
+convenient interface for batch processing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>template</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a>) – Real Fourier transform of the correlation pattern.
+The source pattern should have size (2 * crop_size, 2 * crop_size). Please note that
+the real Fourier transform (fft.rfft2) of the source pattern has a different shape!</p></li>
+<li><p><strong>crop_size</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Half the size of the correlation pattern. Given as a parameter since real Fourier
+transform changes the size.</p></li>
+<li><p><strong>frame</strong> (<em>np.ndarray</em>) – Frame data. Currently, only Real values are supported.</p></li>
+<li><p><strong>peaks</strong> (<em>np.ndarray</em>) – List of peaks of shape (n_peaks, 2)</p></li>
+<li><p><strong>out_centers</strong> (<em>np.ndarray</em>) – Output buffer for center positions of shape (n_peaks, 2) and integer dtype.</p></li>
+<li><p><strong>out_refineds</strong> (<em>np.ndarray</em>) – Output buffer for refined center positions of shape (n_peaks, 2) and float dtype.</p></li>
+<li><p><strong>out_heights</strong> (<em>np.ndarray</em>) – Output buffer for peak height in log scaled frame. Shape (n_peaks, ) and float dtype.</p></li>
+<li><p><strong>out_elevations</strong> (<em>np.ndarray</em>) – Output buffer for peak elevation in log scaled frame. Shape (n_peaks, ) and float dtype.</p></li>
+<li><p><strong>crop_bufs</strong> (<em>np.ndarray</em>) – Aligned buffer for pyfftw. Shape (n, 2 * crop_size, 2 * crop_size) and float dtype.
+n doesn’t have to match the number of peaks. Instead, it should be chosen for good L3 cache
+efficiency. <a class="reference internal" href="#libertem_blobfinder.base.correlation.allocate_crop_bufs" title="libertem_blobfinder.base.correlation.allocate_crop_bufs"><code class="xref py py-meth docutils literal notranslate"><span class="pre">allocate_crop_bufs()</span></code></a> can be used to allocate this buffer.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The values are placed in the provided output buffers.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/constants.html#None" title="(in Python v3.7)">None</a></p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">libertem_blobfinder.common.patterns</span> <span class="kn">import</span> <span class="n">RadialGradient</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">libertem_blobfinder.base.correlation</span> <span class="kn">import</span> <span class="n">allocate_crop_bufs</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">frames</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">peaks</span> <span class="o">=</span> <span class="n">libertem</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">generate</span><span class="o">.</span><span class="n">cbed_frame</span><span class="p">(</span><span class="n">radius</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pattern</span> <span class="o">=</span> <span class="n">RadialGradient</span><span class="p">(</span><span class="n">radius</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">crop_size</span> <span class="o">=</span> <span class="n">pattern</span><span class="o">.</span><span class="n">get_crop_size</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">template</span> <span class="o">=</span> <span class="n">pattern</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="n">sig_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">crop_size</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">crop_size</span><span class="p">))</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">centers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">frames</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaks</span><span class="p">),</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">refineds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">frames</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaks</span><span class="p">),</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">heights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">frames</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaks</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">elevations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">frames</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaks</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">crop_bufs</span> <span class="o">=</span> <span class="n">allocate_crop_bufs</span><span class="p">(</span><span class="n">crop_size</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaks</span><span class="p">),</span> <span class="n">frames</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">frames</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">process_frame_fast</span><span class="p">(</span>
+<span class="gp">... </span>        <span class="n">template</span><span class="o">=</span><span class="n">template</span><span class="p">,</span> <span class="n">crop_size</span><span class="o">=</span><span class="n">crop_size</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="n">frame</span><span class="o">=</span><span class="n">f</span><span class="p">,</span> <span class="n">peaks</span><span class="o">=</span><span class="n">peaks</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+<span class="gp">... </span>        <span class="n">out_centers</span><span class="o">=</span><span class="n">centers</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">out_refineds</span><span class="o">=</span><span class="n">refineds</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="n">out_heights</span><span class="o">=</span><span class="n">heights</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">out_elevations</span><span class="o">=</span><span class="n">elevations</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="n">crop_bufs</span><span class="o">=</span><span class="n">crop_bufs</span>
+<span class="gp">... </span>    <span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">refineds</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">peaks</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt id="libertem_blobfinder.base.correlation.process_frame_full">
+<code class="sig-prename descclassname">libertem_blobfinder.base.correlation.</code><code class="sig-name descname">process_frame_full</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">template</span></em>, <em class="sig-param"><span class="n">crop_size</span></em>, <em class="sig-param"><span class="n">frame</span></em>, <em class="sig-param"><span class="n">peaks</span></em>, <em class="sig-param"><span class="n">out_centers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">out_refineds</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">out_heights</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">out_elevations</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">frame_buf</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">buf_count</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/base/correlation.html#process_frame_full"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.base.correlation.process_frame_full" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the parameters of peaks in a diffraction pattern by correlation with a template</p>
+<p>This function is designed to be used in an optimized pipeline with a pre-calculated
+Fourier transform of the match pattern and optional pre-allocated buffers. It is the
+engine of the <a class="reference internal" href="#libertem_blobfinder.udf.correlation.FullFrameCorrelationUDF" title="libertem_blobfinder.udf.correlation.FullFrameCorrelationUDF"><code class="xref py py-class docutils literal notranslate"><span class="pre">libertem_blobfinder.udf.correlation.FullFrameCorrelationUDF</span></code></a>
+for stand-alone use independent of LiberTEM.</p>
+<p><a class="reference internal" href="#libertem_blobfinder.common.correlation.process_frames_full" title="libertem_blobfinder.common.correlation.process_frames_full"><code class="xref py py-meth docutils literal notranslate"><span class="pre">libertem_blobfinder.common.correlation.process_frames_full()</span></code></a> offers a more
+convenient interface for batch processing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>template</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a>) – Real Fourier transform of the correlation pattern.
+The source pattern should have size (2 * crop_size, 2 * crop_size). Please note that
+the real Fourier transform (fft.rfft2) of the source pattern has a different shape!</p></li>
+<li><p><strong>crop_size</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Half the size of the correlation pattern. Given as a parameter since real Fourier
+transform changes the size.</p></li>
+<li><p><strong>frame</strong> (<em>np.ndarray</em>) – Frame data. Currently, only real values are supported.</p></li>
+<li><p><strong>peaks</strong> (<em>np.ndarray</em>) – List of peaks of shape (n_peaks, 2)</p></li>
+<li><p><strong>out_centers</strong> (<em>np.ndarray</em><em>, </em><em>optional</em>) – Output buffer for center positions of shape (n_peaks, 2) and integer dtype. Will be
+allocated if needed.</p></li>
+<li><p><strong>out_refineds</strong> (<em>np.ndarray</em><em>, </em><em>optional</em>) – Output buffer for refined center positions of shape (n_peaks, 2) and float dtype. Will be
+allocated if needed.</p></li>
+<li><p><strong>out_heights</strong> (<em>np.ndarray</em><em>, </em><em>optional</em>) – Output buffer for peak height in log scaled frame. Shape (n_peaks, ) and float dtype. Will
+be allocated if needed.</p></li>
+<li><p><strong>out_elevations</strong> (<em>np.ndarray</em><em>, </em><em>optional</em>) – Output buffer for peak elevation in log scaled frame. Shape (n_peaks, ) and float dtype.
+Will be allocated if needed.</p></li>
+<li><p><strong>frame_buf</strong> (<em>np.ndarray</em>) – Aligned buffer for FFT back-end, such as pyfftw. Shape of a frame and float dtype.
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">libertem_blobfinder.base.correlation.zero()</span></code> can be used.</p></li>
+<li><p><strong>buf_count</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Number of peaks to process per outer loop iteration. This allows optimization of L3 cache
+efficiency.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The values are placed in the provided output buffers.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/constants.html#None" title="(in Python v3.7)">None</a></p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">libertem_blobfinder.common.patterns</span> <span class="kn">import</span> <span class="n">RadialGradient</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">libertem_blobfinder.base.correlation</span> <span class="kn">import</span> <span class="n">get_buf_count</span><span class="p">,</span> <span class="n">zeros</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">frames</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">peaks</span> <span class="o">=</span> <span class="n">libertem</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">generate</span><span class="o">.</span><span class="n">cbed_frame</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pattern</span> <span class="o">=</span> <span class="n">RadialGradient</span><span class="p">(</span><span class="n">radius</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">crop_size</span> <span class="o">=</span> <span class="n">pattern</span><span class="o">.</span><span class="n">get_crop_size</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">template</span> <span class="o">=</span> <span class="n">pattern</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="n">sig_shape</span><span class="o">=</span><span class="n">frames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">centers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">frames</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaks</span><span class="p">),</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">refineds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">frames</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaks</span><span class="p">),</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">heights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">frames</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaks</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">elevations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">frames</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaks</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">frame_buf</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="n">frames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">buf_count</span> <span class="o">=</span> <span class="n">get_buf_count</span><span class="p">(</span><span class="n">crop_size</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaks</span><span class="p">),</span> <span class="n">frame_buf</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">frames</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">process_frame_full</span><span class="p">(</span>
+<span class="gp">... </span>        <span class="n">template</span><span class="o">=</span><span class="n">template</span><span class="p">,</span> <span class="n">crop_size</span><span class="o">=</span><span class="n">crop_size</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="n">frame</span><span class="o">=</span><span class="n">f</span><span class="p">,</span> <span class="n">peaks</span><span class="o">=</span><span class="n">peaks</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+<span class="gp">... </span>        <span class="n">out_centers</span><span class="o">=</span><span class="n">centers</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">out_refineds</span><span class="o">=</span><span class="n">refineds</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="n">out_heights</span><span class="o">=</span><span class="n">heights</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">out_elevations</span><span class="o">=</span><span class="n">elevations</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+<span class="gp">... </span>        <span class="n">frame_buf</span><span class="o">=</span><span class="n">frame_buf</span><span class="p">,</span> <span class="n">buf_count</span><span class="o">=</span><span class="n">buf_count</span>
+<span class="gp">... </span>    <span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">refineds</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">peaks</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="common-classes-and-functions">
+<span id="blobfinder-common"></span><h2>Common classes and functions<a class="headerlink" href="#common-classes-and-functions" title="Permalink to this headline">¶</a></h2>
+<p>These functions and classes depend on other LiberTEM “common” packages, but can
+be used without the LiberTEM core infrastructure.</p>
+<span class="target" id="module-libertem_blobfinder.common.patterns"></span><dl class="py class">
+<dt id="libertem_blobfinder.common.patterns.BackgroundSubtraction">
+<em class="property">class </em><code class="sig-prename descclassname">libertem_blobfinder.common.patterns.</code><code class="sig-name descname">BackgroundSubtraction</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">radius</span></em>, <em class="sig-param"><span class="n">search</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">radius_outer</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/common/patterns.html#BackgroundSubtraction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.common.patterns.BackgroundSubtraction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Solid circular disk surrounded with a balancing negative area</p>
+<p>This pattern rejects background and avoids false positives at positions between peaks</p>
+<dl class="py method">
+<dt id="libertem_blobfinder.common.patterns.BackgroundSubtraction.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">radius</span></em>, <em class="sig-param"><span class="n">search</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">radius_outer</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/common/patterns.html#BackgroundSubtraction.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.common.patterns.BackgroundSubtraction.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>radius</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – Radius of the circular pattern in px</p></li>
+<li><p><strong>search</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em>, </em><em>optional</em>) – Range from the center point in px to include in the correlation.
+<code class="code docutils literal notranslate"><span class="pre">max(2*radius,</span> <span class="pre">radius_outer)</span></code> by default.
+Defining the size of the square correlation pattern.</p></li>
+<li><p><strong>radius_outer</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em>, </em><em>optional</em>) – Radius of the negative region in px. 1.5x radius by default.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="libertem_blobfinder.common.patterns.Circular">
+<em class="property">class </em><code class="sig-prename descclassname">libertem_blobfinder.common.patterns.</code><code class="sig-name descname">Circular</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">radius</span></em>, <em class="sig-param"><span class="n">search</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/common/patterns.html#Circular"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.common.patterns.Circular" title="Permalink to this definition">¶</a></dt>
+<dd><p>Circular pattern with radius <code class="code docutils literal notranslate"><span class="pre">radius</span></code>.</p>
+<p>This pattern is useful for constructing feature vectors using
+<a class="reference internal" href="#libertem_blobfinder.common.patterns.feature_vector" title="libertem_blobfinder.common.patterns.feature_vector"><code class="xref py py-meth docutils literal notranslate"><span class="pre">feature_vector()</span></code></a>.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 0.3.0.</span></p>
+</div>
+<dl class="py method">
+<dt id="libertem_blobfinder.common.patterns.Circular.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">radius</span></em>, <em class="sig-param"><span class="n">search</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/common/patterns.html#Circular.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.common.patterns.Circular.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>radius</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – Radius of the circular pattern in px</p></li>
+<li><p><strong>search</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em>, </em><em>optional</em>) – Range from the center point in px to include in the correlation, 2x radius by default.
+Defining the size of the square correlation pattern.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="libertem_blobfinder.common.patterns.MatchPattern">
+<em class="property">class </em><code class="sig-prename descclassname">libertem_blobfinder.common.patterns.</code><code class="sig-name descname">MatchPattern</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">search</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/common/patterns.html#MatchPattern"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.common.patterns.MatchPattern" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract base class for correlation patterns.</p>
+<p>This class provides an API to provide a template for fast correlation-based peak finding.</p>
+<dl class="py method">
+<dt id="libertem_blobfinder.common.patterns.MatchPattern.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">search</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/common/patterns.html#MatchPattern.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.common.patterns.MatchPattern.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>search</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – Range from the center point in px to include in the correlation, defining the size
+of the square correlation pattern.
+Will be ceiled to the next int for performing the correlation.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="libertem_blobfinder.common.patterns.RadialGradient">
+<em class="property">class </em><code class="sig-prename descclassname">libertem_blobfinder.common.patterns.</code><code class="sig-name descname">RadialGradient</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">radius</span></em>, <em class="sig-param"><span class="n">search</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/common/patterns.html#RadialGradient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.common.patterns.RadialGradient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Radial gradient from zero in the center to one at <code class="code docutils literal notranslate"><span class="pre">radius</span></code>.</p>
+<p>This pattern rejects the influence of internal intensity variations of the CBED disk.</p>
+<dl class="py method">
+<dt id="libertem_blobfinder.common.patterns.RadialGradient.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">radius</span></em>, <em class="sig-param"><span class="n">search</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/common/patterns.html#RadialGradient.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.common.patterns.RadialGradient.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>radius</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – Radius of the circular pattern in px</p></li>
+<li><p><strong>search</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em>, </em><em>optional</em>) – Range from the center point in px to include in the correlation, 2x radius by default.
+Defining the size of the square correlation pattern.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="libertem_blobfinder.common.patterns.RadialGradientBackgroundSubtraction">
+<em class="property">class </em><code class="sig-prename descclassname">libertem_blobfinder.common.patterns.</code><code class="sig-name descname">RadialGradientBackgroundSubtraction</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">radius</span></em>, <em class="sig-param"><span class="n">search</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">radius_outer</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">delta</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">radial_map</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/common/patterns.html#RadialGradientBackgroundSubtraction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.common.patterns.RadialGradientBackgroundSubtraction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Combination of radial gradient with background subtraction</p>
+<dl class="py method">
+<dt id="libertem_blobfinder.common.patterns.RadialGradientBackgroundSubtraction.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">radius</span></em>, <em class="sig-param"><span class="n">search</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">radius_outer</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">delta</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">radial_map</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/common/patterns.html#RadialGradientBackgroundSubtraction.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.common.patterns.RadialGradientBackgroundSubtraction.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <code class="xref py py-meth docutils literal notranslate"><span class="pre">radial_gradient_background_subtraction()</span></code> for details.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>radius</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – Radius of the circular pattern in px</p></li>
+<li><p><strong>search</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em>, </em><em>optional</em>) – Range from the center point in px to include in the correlation.
+<code class="code docutils literal notranslate"><span class="pre">max(2*radius,</span> <span class="pre">radius_outer)</span></code> by default
+Defining the size of the square correlation pattern.</p></li>
+<li><p><strong>radius_outer</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em>, </em><em>optional</em>) – Radius of the negative region in px. 1.5x radius by default.</p></li>
+<li><p><strong>delta</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em>, </em><em>optional</em>) – Width of the transition region between positive and negative in px</p></li>
+<li><p><strong>radial_map</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a><em>, </em><em>optional</em>) – Radius value of each pixel in px. This can be used to distort the shape as needed
+or work in physical coordinates instead of pixels.
+A suitable map can be generated with <code class="xref py py-meth docutils literal notranslate"><span class="pre">libertem.masks.polar_map()</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="n">phi</span><span class="p">)</span> <span class="o">=</span> <span class="n">libertem</span><span class="o">.</span><span class="n">masks</span><span class="o">.</span><span class="n">polar_map</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">centerX</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">centerY</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">imageSizeX</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">imageSizeY</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">stretchY</span><span class="o">=</span><span class="mf">2.</span><span class="p">,</span> <span class="n">angle</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">4</span>
+<span class="gp">... </span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">template</span> <span class="o">=</span> <span class="n">RadialGradientBackgroundSubtraction</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">radius</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">radial_map</span><span class="o">=</span><span class="n">radius</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># This shows an elliptical template that is stretched</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># along the 45 ° bottom-left top-right diagonal</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">get_mask</span><span class="p">(</span><span class="n">sig_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">)))</span>
+<span class="go">&lt;matplotlib.image.AxesImage object at ...&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span> 
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="libertem_blobfinder.common.patterns.UserTemplate">
+<em class="property">class </em><code class="sig-prename descclassname">libertem_blobfinder.common.patterns.</code><code class="sig-name descname">UserTemplate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">template</span></em>, <em class="sig-param"><span class="n">search</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/common/patterns.html#UserTemplate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.common.patterns.UserTemplate" title="Permalink to this definition">¶</a></dt>
+<dd><p>User-defined template</p>
+<dl class="py method">
+<dt id="libertem_blobfinder.common.patterns.UserTemplate.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">template</span></em>, <em class="sig-param"><span class="n">search</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/common/patterns.html#UserTemplate.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.common.patterns.UserTemplate.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>template</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a>) – Correlation template as 2D numpy.ndarray</p></li>
+<li><p><strong>search</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em>, </em><em>optional</em>) – Range from the center point in px to include in the correlation.
+Half diagonal of the template by default.
+Defining the size of the square correlation pattern.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="libertem_blobfinder.common.patterns.feature_vector">
+<code class="sig-prename descclassname">libertem_blobfinder.common.patterns.</code><code class="sig-name descname">feature_vector</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">imageSizeX</span></em>, <em class="sig-param"><span class="n">imageSizeY</span></em>, <em class="sig-param"><span class="n">peaks</span></em>, <em class="sig-param"><span class="n">match_pattern</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#libertem_blobfinder.common.patterns.MatchPattern" title="libertem_blobfinder.common.patterns.MatchPattern">libertem_blobfinder.common.patterns.MatchPattern</a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/common/patterns.html#feature_vector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.common.patterns.feature_vector" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function generates a sparse mask stack to extract a feature vector.</p>
+<p>A match template based on the parameters in <code class="code docutils literal notranslate"><span class="pre">parameters</span></code> is placed at
+each peak position in an individual mask layer. This mask stack can then
+be used in <a class="reference external" href="https://libertem.github.io/LiberTEM/reference/udf.html#libertem.udf.masks.ApplyMasksUDF" title="(in LiberTEM v0.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">libertem.udf.masks.ApplyMasksUDF</span></code></a> to generate a feature
+vector for each frame.</p>
+<p>Summing up the mask stack along the first axis generates a mask that can be used for virtual
+darkfield imaging of all peaks together.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>imageSizeX</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Frame size in px</p></li>
+<li><p><strong>imageSizeY</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Frame size in px</p></li>
+<li><p><strong>peaks</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a>) – Peak positions in px as numpy.ndarray of shape (n, 2) with integer type</p></li>
+<li><p><strong>match_pattern</strong> (<a class="reference internal" href="#libertem_blobfinder.common.patterns.MatchPattern" title="libertem_blobfinder.common.patterns.MatchPattern"><em>MatchPattern</em></a>) – Instance of <a class="reference internal" href="#libertem_blobfinder.common.patterns.MatchPattern" title="libertem_blobfinder.common.patterns.MatchPattern"><code class="xref py py-class docutils literal notranslate"><span class="pre">MatchPattern</span></code></a></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<span class="target" id="module-libertem_blobfinder.common.correlation"></span><dl class="py function">
+<dt id="libertem_blobfinder.common.correlation.get_correlation">
+<code class="sig-prename descclassname">libertem_blobfinder.common.correlation.</code><code class="sig-name descname">get_correlation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sum_result</span></em>, <em class="sig-param"><span class="n">match_pattern</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#libertem_blobfinder.common.patterns.MatchPattern" title="libertem_blobfinder.common.patterns.MatchPattern">libertem_blobfinder.common.patterns.MatchPattern</a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/common/correlation.html#get_correlation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.common.correlation.get_correlation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the correlation between <code class="code docutils literal notranslate"><span class="pre">sum_result</span></code> and <code class="code docutils literal notranslate"><span class="pre">match_pattern</span></code>.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 0.4.0.dev0.</span></p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sum_result</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a>) – 2D result frame as correlation input</p></li>
+<li><p><strong>match_pattern</strong> (<a class="reference internal" href="#libertem_blobfinder.common.patterns.MatchPattern" title="libertem_blobfinder.common.patterns.MatchPattern"><em>MatchPattern</em></a>) – Instance of <code class="xref py py-class docutils literal notranslate"><span class="pre">MatchPattern</span></code> to correlate
+<code class="code docutils literal notranslate"><span class="pre">sum_result</span></code> with</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="libertem_blobfinder.common.correlation.get_peaks">
+<code class="sig-prename descclassname">libertem_blobfinder.common.correlation.</code><code class="sig-name descname">get_peaks</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sum_result</span></em>, <em class="sig-param"><span class="n">match_pattern</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#libertem_blobfinder.common.patterns.MatchPattern" title="libertem_blobfinder.common.patterns.MatchPattern">libertem_blobfinder.common.patterns.MatchPattern</a></span></em>, <em class="sig-param"><span class="n">num_peaks</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/common/correlation.html#get_peaks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.common.correlation.get_peaks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find peaks of the correlation between <code class="code docutils literal notranslate"><span class="pre">sum_result</span></code> and <code class="code docutils literal notranslate"><span class="pre">match_pattern</span></code>.</p>
+<p>The result  can then be used as input to
+<a class="reference external" href="https://libertem.github.io/LiberTEM/reference/app/strain.html#libertem.analysis.fullmatch.FullMatcher.full_match" title="(in LiberTEM v0.6)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">full_match()</span></code></a>
+to extract grid parameters, <code class="xref py py-meth docutils literal notranslate"><span class="pre">run_fastcorrelation()</span></code>
+to find the position in each frame or to construct a mask to extract feature vectors with
+<a class="reference internal" href="#libertem_blobfinder.common.patterns.feature_vector" title="libertem_blobfinder.common.patterns.feature_vector"><code class="xref py py-meth docutils literal notranslate"><span class="pre">feature_vector()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sum_result</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a>) – 2D result frame as correlation input</p></li>
+<li><p><strong>match_pattern</strong> (<a class="reference internal" href="#libertem_blobfinder.common.patterns.MatchPattern" title="libertem_blobfinder.common.patterns.MatchPattern"><em>MatchPattern</em></a>) – Instance of <code class="xref py py-class docutils literal notranslate"><span class="pre">MatchPattern</span></code> to correlate
+<code class="code docutils literal notranslate"><span class="pre">sum_result</span></code> with</p></li>
+<li><p><strong>num_peaks</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Number of peaks to find</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">frame</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">libertem</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">generate</span><span class="o">.</span><span class="n">cbed_frame</span><span class="p">(</span><span class="n">radius</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pattern</span> <span class="o">=</span> <span class="n">libertem_blobfinder</span><span class="o">.</span><span class="n">common</span><span class="o">.</span><span class="n">patterns</span><span class="o">.</span><span class="n">RadialGradient</span><span class="p">(</span><span class="n">radius</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">peaks</span> <span class="o">=</span> <span class="n">get_peaks</span><span class="p">(</span><span class="n">frame</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pattern</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">peaks</span><span class="p">)</span>
+<span class="go">[[64 64]</span>
+<span class="go"> [64 80]</span>
+<span class="go"> [80 80]</span>
+<span class="go"> [80 64]</span>
+<span class="go"> [48 80]</span>
+<span class="go"> [48 64]</span>
+<span class="go"> [64 96]]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt id="libertem_blobfinder.common.correlation.process_frames_fast">
+<code class="sig-prename descclassname">libertem_blobfinder.common.correlation.</code><code class="sig-name descname">process_frames_fast</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pattern</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#libertem_blobfinder.common.patterns.MatchPattern" title="libertem_blobfinder.common.patterns.MatchPattern">libertem_blobfinder.common.patterns.MatchPattern</a></span></em>, <em class="sig-param"><span class="n">frames</span></em>, <em class="sig-param"><span class="n">peaks</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/common/correlation.html#process_frames_fast"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.common.correlation.process_frames_fast" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the parameters of peaks in a diffraction pattern by correlation with a match pattern.</p>
+<p>This method crops regions of interest around the peaks from the frames before correlation,
+which is usually fastest for a moderate amount of moderately sized peaks per frame.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#libertem_blobfinder.udf.correlation.FastCorrelationUDF" title="libertem_blobfinder.udf.correlation.FastCorrelationUDF"><code class="xref py py-class docutils literal notranslate"><span class="pre">FastCorrelationUDF</span></code></a> is a
+parallelized, distributed version for large-scale data.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pattern</strong> (<a class="reference internal" href="#libertem_blobfinder.common.patterns.MatchPattern" title="libertem_blobfinder.common.patterns.MatchPattern"><em>MatchPattern</em></a>) – Pattern to correlate with.</p></li>
+<li><p><strong>frames</strong> (<em>np.ndarray</em>) – Frame data. Currently, only Real values are supported.</p></li>
+<li><p><strong>peaks</strong> (<em>np.ndarray</em>) – List of peaks of shape (n_peaks, 2)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>centers</strong> (<em>np.ndarray</em>) – Center positions of shape (n_peaks, 2) and integer dtype.</p></li>
+<li><p><strong>refineds</strong> (<em>np.ndarray</em>) – Refined center positions of shape (n_peaks, 2) and float dtype.</p></li>
+<li><p><strong>heights</strong> (<em>np.ndarray</em>) – Peak height in log scaled frame. Shape (n_peaks, ) and float dtype.</p></li>
+<li><p><strong>elevations</strong> (<em>np.ndarray</em>) – Peak elevation in log scaled frame. Shape (n_peaks, ) and float dtype</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">frames</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">peaks</span> <span class="o">=</span> <span class="n">libertem</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">generate</span><span class="o">.</span><span class="n">cbed_frame</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pattern</span> <span class="o">=</span> <span class="n">libertem_blobfinder</span><span class="o">.</span><span class="n">common</span><span class="o">.</span><span class="n">patterns</span><span class="o">.</span><span class="n">RadialGradient</span><span class="p">(</span><span class="n">radius</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">centers</span><span class="p">,</span> <span class="n">refineds</span><span class="p">,</span> <span class="n">heights</span><span class="p">,</span> <span class="n">elevations</span><span class="p">)</span> <span class="o">=</span> <span class="n">process_frames_fast</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">pattern</span><span class="o">=</span><span class="n">pattern</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">frames</span><span class="o">=</span><span class="n">frames</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">peaks</span><span class="o">=</span><span class="n">peaks</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">refineds</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">peaks</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt id="libertem_blobfinder.common.correlation.process_frames_full">
+<code class="sig-prename descclassname">libertem_blobfinder.common.correlation.</code><code class="sig-name descname">process_frames_full</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pattern</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#libertem_blobfinder.common.patterns.MatchPattern" title="libertem_blobfinder.common.patterns.MatchPattern">libertem_blobfinder.common.patterns.MatchPattern</a></span></em>, <em class="sig-param"><span class="n">frames</span></em>, <em class="sig-param"><span class="n">peaks</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/common/correlation.html#process_frames_full"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.common.correlation.process_frames_full" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the parameters of peaks in a diffraction pattern by correlation with a match pattern.</p>
+<p>This method crops regions of interest around the peaks after correlation,
+which can be faster for many peaks on smaller frames.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#libertem_blobfinder.udf.correlation.FullFrameCorrelationUDF" title="libertem_blobfinder.udf.correlation.FullFrameCorrelationUDF"><code class="xref py py-class docutils literal notranslate"><span class="pre">FullFrameCorrelationUDF</span></code></a> is a
+parallelized, distributed version for large-scale data.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pattern</strong> (<a class="reference internal" href="#libertem_blobfinder.common.patterns.MatchPattern" title="libertem_blobfinder.common.patterns.MatchPattern"><em>MatchPattern</em></a>) – Pattern to correlate with.</p></li>
+<li><p><strong>frame</strong> (<em>np.ndarray</em>) – Frame data. Currently, only real values are supported.</p></li>
+<li><p><strong>peaks</strong> (<em>np.ndarray</em>) – List of peaks of shape (n_peaks, 2)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>centers</strong> (<em>np.ndarray</em>) – Center positions of shape (n_peaks, 2) and integer dtype.</p></li>
+<li><p><strong>refineds</strong> (<em>np.ndarray</em>) – Refined center positions of shape (n_peaks, 2) and float dtype.</p></li>
+<li><p><strong>heights</strong> (<em>np.ndarray</em>) – Peak height in log scaled frame. Shape (n_peaks, ) and float dtype.</p></li>
+<li><p><strong>elevations</strong> (<em>np.ndarray</em>) – Peak elevation in log scaled frame. Shape (n_peaks, ) and float dtype</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">frames</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">peaks</span> <span class="o">=</span> <span class="n">libertem</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">generate</span><span class="o">.</span><span class="n">cbed_frame</span><span class="p">(</span><span class="n">radius</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pattern</span> <span class="o">=</span> <span class="n">libertem_blobfinder</span><span class="o">.</span><span class="n">common</span><span class="o">.</span><span class="n">patterns</span><span class="o">.</span><span class="n">RadialGradient</span><span class="p">(</span><span class="n">radius</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">centers</span><span class="p">,</span> <span class="n">refineds</span><span class="p">,</span> <span class="n">heights</span><span class="p">,</span> <span class="n">elevations</span><span class="p">)</span> <span class="o">=</span> <span class="n">process_frames_full</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">pattern</span><span class="o">=</span><span class="n">pattern</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">frames</span><span class="o">=</span><span class="n">frames</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">peaks</span><span class="o">=</span><span class="n">peaks</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">refineds</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">peaks</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="user-defined-functions">
+<span id="blobfinder-udf"></span><h2>User-defined functions<a class="headerlink" href="#user-defined-functions" title="Permalink to this headline">¶</a></h2>
+<p>These functions and classes depend on LiberTEM core infrastructure.</p>
+<div class="section" id="correlation">
+<h3>Correlation<a class="headerlink" href="#correlation" title="Permalink to this headline">¶</a></h3>
+<p>UDFs and utility functions to find peaks and refine their positions by using
+correlation.</p>
+<span class="target" id="module-libertem_blobfinder.udf.correlation"></span><dl class="py class">
+<dt id="libertem_blobfinder.udf.correlation.CorrelationUDF">
+<em class="property">class </em><code class="sig-prename descclassname">libertem_blobfinder.udf.correlation.</code><code class="sig-name descname">CorrelationUDF</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">peaks</span></em>, <em class="sig-param"><span class="n">zero_shift</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/correlation.html#CorrelationUDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.correlation.CorrelationUDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://libertem.github.io/LiberTEM/reference/udf.html#libertem.udf.base.UDF" title="(in LiberTEM v0.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">libertem.udf.base.UDF</span></code></a></p>
+<p>Base class for peak correlation implementations</p>
+<dl class="py method">
+<dt id="libertem_blobfinder.udf.correlation.CorrelationUDF.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">peaks</span></em>, <em class="sig-param"><span class="n">zero_shift</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/correlation.html#CorrelationUDF.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.correlation.CorrelationUDF.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>peaks</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a>) – Numpy array of (y, x) coordinates with peak positions in px to correlate</p></li>
+<li><p><strong>zero_shift</strong> (<em>Union</em><em>[</em><em>AUXBufferWrapper</em><em>, </em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3.7/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em>]</em><em>, </em><em>optional</em>) – Zero shift, for example descan error. Can be <code class="code docutils literal notranslate"><span class="pre">None</span></code>, <code class="code docutils literal notranslate"><span class="pre">numpy.array((y,</span> <span class="pre">x))</span></code>
+or AUX data with <code class="code docutils literal notranslate"><span class="pre">(y,</span> <span class="pre">x)</span></code> for each frame.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="libertem_blobfinder.udf.correlation.CorrelationUDF.get_result_buffers">
+<code class="sig-name descname">get_result_buffers</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/correlation.html#CorrelationUDF.get_result_buffers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.correlation.CorrelationUDF.get_result_buffers" title="Permalink to this definition">¶</a></dt>
+<dd><p>The common buffers for all correlation methods.</p>
+<dl class="simple">
+<dt><code class="code docutils literal notranslate"><span class="pre">centers</span></code>:</dt><dd><p>(y, x) integer positions.</p>
+</dd>
+<dt><code class="code docutils literal notranslate"><span class="pre">refineds</span></code>:</dt><dd><p>(y, x) positions with subpixel refinement.</p>
+</dd>
+<dt><code class="code docutils literal notranslate"><span class="pre">peak_values</span></code>:</dt><dd><p>Peak height in the log scaled frame.</p>
+</dd>
+<dt><code class="code docutils literal notranslate"><span class="pre">peak_elevations</span></code>:</dt><dd><p>Peak quality (result of <code class="xref py py-meth docutils literal notranslate"><span class="pre">peak_elevation()</span></code>).</p>
+</dd>
+</dl>
+<p>See source code for details of the buffer declaration.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="libertem_blobfinder.udf.correlation.CorrelationUDF.output_buffers">
+<code class="sig-name descname">output_buffers</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/correlation.html#CorrelationUDF.output_buffers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.correlation.CorrelationUDF.output_buffers" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function allows abstraction of the result buffers from
+the default implementation in <a class="reference internal" href="#libertem_blobfinder.udf.correlation.CorrelationUDF.get_result_buffers" title="libertem_blobfinder.udf.correlation.CorrelationUDF.get_result_buffers"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_result_buffers()</span></code></a>.</p>
+<p>Override this function if you wish to redirect the results to different
+buffers, for example ragged arrays or binned processing.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="libertem_blobfinder.udf.correlation.FastCorrelationUDF">
+<em class="property">class </em><code class="sig-prename descclassname">libertem_blobfinder.udf.correlation.</code><code class="sig-name descname">FastCorrelationUDF</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">peaks</span></em>, <em class="sig-param"><span class="n">match_pattern</span></em>, <em class="sig-param"><span class="n">zero_shift</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/correlation.html#FastCorrelationUDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.correlation.FastCorrelationUDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#libertem_blobfinder.udf.correlation.CorrelationUDF" title="libertem_blobfinder.udf.correlation.CorrelationUDF"><code class="xref py py-class docutils literal notranslate"><span class="pre">libertem_blobfinder.udf.correlation.CorrelationUDF</span></code></a></p>
+<p>Fourier-based fast correlation-based refinement of peak positions within a search frame
+for each peak.</p>
+<dl class="py method">
+<dt id="libertem_blobfinder.udf.correlation.FastCorrelationUDF.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">peaks</span></em>, <em class="sig-param"><span class="n">match_pattern</span></em>, <em class="sig-param"><span class="n">zero_shift</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/correlation.html#FastCorrelationUDF.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.correlation.FastCorrelationUDF.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>peaks</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a>) – Numpy array of (y, x) coordinates with peak positions in px to correlate</p></li>
+<li><p><strong>match_pattern</strong> (<a class="reference internal" href="#libertem_blobfinder.common.patterns.MatchPattern" title="libertem_blobfinder.common.patterns.MatchPattern"><em>MatchPattern</em></a>) – Instance of <code class="xref py py-class docutils literal notranslate"><span class="pre">MatchPattern</span></code></p></li>
+<li><p><strong>zero_shift</strong> (<em>Union</em><em>[</em><em>AUXBufferWrapper</em><em>, </em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3.7/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em>]</em><em>, </em><em>optional</em>) – Zero shift, for example descan error. Can be <code class="code docutils literal notranslate"><span class="pre">None</span></code>, <code class="code docutils literal notranslate"><span class="pre">numpy.array((y,</span> <span class="pre">x))</span></code>
+or AUX data with <code class="code docutils literal notranslate"><span class="pre">(y,</span> <span class="pre">x)</span></code> for each frame.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="libertem_blobfinder.udf.correlation.FullFrameCorrelationUDF">
+<em class="property">class </em><code class="sig-prename descclassname">libertem_blobfinder.udf.correlation.</code><code class="sig-name descname">FullFrameCorrelationUDF</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">peaks</span></em>, <em class="sig-param"><span class="n">match_pattern</span></em>, <em class="sig-param"><span class="n">zero_shift</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/correlation.html#FullFrameCorrelationUDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.correlation.FullFrameCorrelationUDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#libertem_blobfinder.udf.correlation.CorrelationUDF" title="libertem_blobfinder.udf.correlation.CorrelationUDF"><code class="xref py py-class docutils literal notranslate"><span class="pre">libertem_blobfinder.udf.correlation.CorrelationUDF</span></code></a></p>
+<p>Fourier-based correlation-based refinement of peak positions within a search
+frame for each peak using a single correlation step. This can be faster for
+correlating a large number of peaks in small frames in comparison to
+<a class="reference internal" href="#libertem_blobfinder.udf.correlation.FastCorrelationUDF" title="libertem_blobfinder.udf.correlation.FastCorrelationUDF"><code class="xref py py-class docutils literal notranslate"><span class="pre">FastCorrelationUDF</span></code></a>. However, it is more sensitive to interference
+from strong peaks next to the peak of interest.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 0.3.0.</span></p>
+</div>
+<dl class="py method">
+<dt id="libertem_blobfinder.udf.correlation.FullFrameCorrelationUDF.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">peaks</span></em>, <em class="sig-param"><span class="n">match_pattern</span></em>, <em class="sig-param"><span class="n">zero_shift</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/correlation.html#FullFrameCorrelationUDF.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.correlation.FullFrameCorrelationUDF.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>peaks</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a>) – Numpy array of (y, x) coordinates with peak positions in px to correlate</p></li>
+<li><p><strong>match_pattern</strong> (<a class="reference internal" href="#libertem_blobfinder.common.patterns.MatchPattern" title="libertem_blobfinder.common.patterns.MatchPattern"><em>MatchPattern</em></a>) – Instance of <code class="xref py py-class docutils literal notranslate"><span class="pre">MatchPattern</span></code></p></li>
+<li><p><strong>zero_shift</strong> (<em>Union</em><em>[</em><em>AUXBufferWrapper</em><em>, </em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3.7/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em>]</em><em>, </em><em>optional</em>) – Zero shift, for example descan error. Can be <code class="code docutils literal notranslate"><span class="pre">None</span></code>, <code class="code docutils literal notranslate"><span class="pre">numpy.array((y,</span> <span class="pre">x))</span></code>
+or AUX data with <code class="code docutils literal notranslate"><span class="pre">(y,</span> <span class="pre">x)</span></code> for each frame.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="libertem_blobfinder.udf.correlation.SparseCorrelationUDF">
+<em class="property">class </em><code class="sig-prename descclassname">libertem_blobfinder.udf.correlation.</code><code class="sig-name descname">SparseCorrelationUDF</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">peaks</span></em>, <em class="sig-param"><span class="n">match_pattern</span></em>, <em class="sig-param"><span class="n">steps</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/correlation.html#SparseCorrelationUDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.correlation.SparseCorrelationUDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#libertem_blobfinder.udf.correlation.CorrelationUDF" title="libertem_blobfinder.udf.correlation.CorrelationUDF"><code class="xref py py-class docutils literal notranslate"><span class="pre">libertem_blobfinder.udf.correlation.CorrelationUDF</span></code></a></p>
+<p>Direct correlation using sparse matrices</p>
+<p>This method allows to adjust the number of correlation steps independent of the template size.</p>
+<dl class="py method">
+<dt id="libertem_blobfinder.udf.correlation.SparseCorrelationUDF.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">peaks</span></em>, <em class="sig-param"><span class="n">match_pattern</span></em>, <em class="sig-param"><span class="n">steps</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/correlation.html#SparseCorrelationUDF.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.correlation.SparseCorrelationUDF.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>peaks</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a>) – Numpy array of (y, x) coordinates with peak positions in px to correlate</p></li>
+<li><p><strong>match_pattern</strong> (<a class="reference internal" href="#libertem_blobfinder.common.patterns.MatchPattern" title="libertem_blobfinder.common.patterns.MatchPattern"><em>MatchPattern</em></a>) – Instance of <code class="xref py py-class docutils literal notranslate"><span class="pre">MatchPattern</span></code></p></li>
+<li><p><strong>steps</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – The template is correlated with 2 * steps + 1 symmetrically around the peak position
+in x and y direction. This defines the maximum shift that can be
+detected. The number of calculations grows with the square of this value, that means
+keeping this as small as the data allows speeds up the calculation.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="libertem_blobfinder.udf.correlation.SparseCorrelationUDF.get_result_buffers">
+<code class="sig-name descname">get_result_buffers</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/correlation.html#SparseCorrelationUDF.get_result_buffers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.correlation.SparseCorrelationUDF.get_result_buffers" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method adds the <code class="code docutils literal notranslate"><span class="pre">corr</span></code> buffer to the result of
+<a class="reference internal" href="#libertem_blobfinder.udf.correlation.CorrelationUDF.get_result_buffers" title="libertem_blobfinder.udf.correlation.CorrelationUDF.get_result_buffers"><code class="xref py py-meth docutils literal notranslate"><span class="pre">CorrelationUDF.get_result_buffers()</span></code></a>. See source code for the
+exact buffer declaration.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="libertem_blobfinder.udf.correlation.SparseCorrelationUDF.postprocess">
+<code class="sig-name descname">postprocess</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/correlation.html#SparseCorrelationUDF.postprocess"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.correlation.SparseCorrelationUDF.postprocess" title="Permalink to this definition">¶</a></dt>
+<dd><p>The correlation results are evaluated during postprocessing since this
+implementation uses tiled processing where the correlations are
+incomplete in <code class="xref py py-meth docutils literal notranslate"><span class="pre">process_tile()</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="libertem_blobfinder.udf.correlation.run_blobfinder">
+<code class="sig-prename descclassname">libertem_blobfinder.udf.correlation.</code><code class="sig-name descname">run_blobfinder</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ctx</span></em>, <em class="sig-param"><span class="n">dataset</span></em>, <em class="sig-param"><span class="n">match_pattern</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#libertem_blobfinder.common.patterns.MatchPattern" title="libertem_blobfinder.common.patterns.MatchPattern">libertem_blobfinder.common.patterns.MatchPattern</a></span></em>, <em class="sig-param"><span class="n">num_peaks</span></em>, <em class="sig-param"><span class="n">roi</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">progress</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/correlation.html#run_blobfinder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.correlation.run_blobfinder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper function to find peaks in a dataset and refine their position using
+<a class="reference internal" href="#libertem_blobfinder.udf.correlation.FastCorrelationUDF" title="libertem_blobfinder.udf.correlation.FastCorrelationUDF"><code class="xref py py-class docutils literal notranslate"><span class="pre">FastCorrelationUDF</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ctx</strong> (<a class="reference external" href="https://libertem.github.io/LiberTEM/reference/api.html#libertem.api.Context" title="(in LiberTEM v0.6)"><em>libertem.api.Context</em></a>) – </p></li>
+<li><p><strong>dataset</strong> (<a class="reference external" href="https://libertem.github.io/LiberTEM/reference/dataset.html#libertem.io.dataset.base.DataSet" title="(in LiberTEM v0.6)"><em>libertem.io.dataset.base.DataSet</em></a>) – </p></li>
+<li><p><strong>match_pattern</strong> (<em>libertem_blobfinder.patterns.MatchPattern</em>) – </p></li>
+<li><p><strong>num_peaks</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Number of peaks to look for</p></li>
+<li><p><strong>roi</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a><em>, </em><em>optional</em>) – Boolean mask of the navigation dimension to select region of interest (ROI)</p></li>
+<li><p><strong>progress</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Show progress bar</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>sum_result</strong> (<em>numpy.ndarray</em>) – Log-scaled sum frame of the dataset/ROI</p></li>
+<li><p><strong>centers, refineds, peak_values, peak_elevations</strong> (<em>libertem.common.buffers.BufferWrapper</em>) – See <a class="reference internal" href="#libertem_blobfinder.udf.correlation.CorrelationUDF.get_result_buffers" title="libertem_blobfinder.udf.correlation.CorrelationUDF.get_result_buffers"><code class="xref py py-meth docutils literal notranslate"><span class="pre">CorrelationUDF.get_result_buffers()</span></code></a> for details.</p></li>
+<li><p><strong>peaks</strong> (<em>numpy.ndarray</em>) – List of found peaks with (y, x) coordinates</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="libertem_blobfinder.udf.correlation.run_fastcorrelation">
+<code class="sig-prename descclassname">libertem_blobfinder.udf.correlation.</code><code class="sig-name descname">run_fastcorrelation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ctx</span></em>, <em class="sig-param"><span class="n">dataset</span></em>, <em class="sig-param"><span class="n">peaks</span></em>, <em class="sig-param"><span class="n">match_pattern</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#libertem_blobfinder.common.patterns.MatchPattern" title="libertem_blobfinder.common.patterns.MatchPattern">libertem_blobfinder.common.patterns.MatchPattern</a></span></em>, <em class="sig-param"><span class="n">zero_shift</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">roi</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">progress</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/correlation.html#run_fastcorrelation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.correlation.run_fastcorrelation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper function to construct and run a <a class="reference internal" href="#libertem_blobfinder.udf.correlation.FastCorrelationUDF" title="libertem_blobfinder.udf.correlation.FastCorrelationUDF"><code class="xref py py-class docutils literal notranslate"><span class="pre">FastCorrelationUDF</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ctx</strong> (<a class="reference external" href="https://libertem.github.io/LiberTEM/reference/api.html#libertem.api.Context" title="(in LiberTEM v0.6)"><em>libertem.api.Context</em></a>) – </p></li>
+<li><p><strong>dataset</strong> (<a class="reference external" href="https://libertem.github.io/LiberTEM/reference/dataset.html#libertem.io.dataset.base.DataSet" title="(in LiberTEM v0.6)"><em>libertem.io.dataset.base.DataSet</em></a>) – </p></li>
+<li><p><strong>peaks</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a>) – List of peaks with (y, x) coordinates</p></li>
+<li><p><strong>match_pattern</strong> (<em>libertem_blobfinder.patterns.MatchPattern</em>) – </p></li>
+<li><p><strong>zero_shift</strong> (<em>Union</em><em>[</em><em>AUXBufferWrapper</em><em>, </em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3.7/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em>]</em><em>, </em><em>optional</em>) – Zero shift, for example descan error. Can be <code class="code docutils literal notranslate"><span class="pre">None</span></code>, <code class="code docutils literal notranslate"><span class="pre">numpy.array((y,</span> <span class="pre">x))</span></code>
+or AUX data with <code class="code docutils literal notranslate"><span class="pre">(y,</span> <span class="pre">x)</span></code> for each frame.</p></li>
+<li><p><strong>roi</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a><em>, </em><em>optional</em>) – Boolean mask of the navigation dimension to select region of interest (ROI)</p></li>
+<li><p><strong>progress</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Show progress bar</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>buffers</strong> – See <a class="reference internal" href="#libertem_blobfinder.udf.correlation.CorrelationUDF.get_result_buffers" title="libertem_blobfinder.udf.correlation.CorrelationUDF.get_result_buffers"><code class="xref py py-meth docutils literal notranslate"><span class="pre">CorrelationUDF.get_result_buffers()</span></code></a> for details.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Dict[<a class="reference external" href="https://libertem.github.io/LiberTEM/reference/udf.html#libertem.common.buffers.BufferWrapper" title="(in LiberTEM v0.6)">libertem.common.buffers.BufferWrapper</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="refinement">
+<h3>Refinement<a class="headerlink" href="#refinement" title="Permalink to this headline">¶</a></h3>
+<p>UDFs and utility functions to refine grid parameters from peak positions.</p>
+<span class="target" id="module-libertem_blobfinder.udf.refinement"></span><dl class="py class">
+<dt id="libertem_blobfinder.udf.refinement.AffineMixin">
+<em class="property">class </em><code class="sig-prename descclassname">libertem_blobfinder.udf.refinement.</code><code class="sig-name descname">AffineMixin</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/refinement.html#AffineMixin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.refinement.AffineMixin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#libertem_blobfinder.udf.refinement.RefinementMixin" title="libertem_blobfinder.udf.refinement.RefinementMixin"><code class="xref py py-class docutils literal notranslate"><span class="pre">libertem_blobfinder.udf.refinement.RefinementMixin</span></code></a></p>
+<p>Refinement using <a class="reference external" href="https://libertem.github.io/LiberTEM/reference/app/strain.html#libertem.analysis.gridmatching.Matcher.affinematch" title="(in LiberTEM v0.6)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">affinematch()</span></code></a></p>
+<dl class="py method">
+<dt id="libertem_blobfinder.udf.refinement.AffineMixin.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/refinement.html#AffineMixin.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.refinement.AffineMixin.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>matcher</strong> (<a class="reference external" href="https://libertem.github.io/LiberTEM/reference/app/strain.html#libertem.analysis.gridmatching.Matcher" title="(in LiberTEM v0.6)"><em>libertem.analysis.gridmatching.Matcher</em></a>) – Instance of <a class="reference external" href="https://libertem.github.io/LiberTEM/reference/app/strain.html#libertem.analysis.gridmatching.Matcher" title="(in LiberTEM v0.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Matcher</span></code></a></p></li>
+<li><p><strong>indices</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a>) – List of indices [(h1, k1), (h2, k2), …] of all peaks. The indices can be
+non-integer and relative to any base vectors, including virtual ones like
+(1, 0); (0, 1). See documentation of
+<a class="reference external" href="https://libertem.github.io/LiberTEM/reference/app/strain.html#libertem.analysis.gridmatching.Matcher.affinematch" title="(in LiberTEM v0.6)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">affinematch()</span></code></a> for details.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="libertem_blobfinder.udf.refinement.FastmatchMixin">
+<em class="property">class </em><code class="sig-prename descclassname">libertem_blobfinder.udf.refinement.</code><code class="sig-name descname">FastmatchMixin</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/refinement.html#FastmatchMixin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.refinement.FastmatchMixin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#libertem_blobfinder.udf.refinement.RefinementMixin" title="libertem_blobfinder.udf.refinement.RefinementMixin"><code class="xref py py-class docutils literal notranslate"><span class="pre">libertem_blobfinder.udf.refinement.RefinementMixin</span></code></a></p>
+<p>Refinement using <a class="reference external" href="https://libertem.github.io/LiberTEM/reference/app/strain.html#libertem.analysis.gridmatching.Matcher.fastmatch" title="(in LiberTEM v0.6)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">fastmatch()</span></code></a></p>
+<dl class="py method">
+<dt id="libertem_blobfinder.udf.refinement.FastmatchMixin.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/refinement.html#FastmatchMixin.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.refinement.FastmatchMixin.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>matcher</strong> (<a class="reference external" href="https://libertem.github.io/LiberTEM/reference/app/strain.html#libertem.analysis.gridmatching.Matcher" title="(in LiberTEM v0.6)"><em>libertem.analysis.gridmatching.Matcher</em></a>) – Instance of <a class="reference external" href="https://libertem.github.io/LiberTEM/reference/app/strain.html#libertem.analysis.gridmatching.Matcher" title="(in LiberTEM v0.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Matcher</span></code></a></p></li>
+<li><p><strong>start_zero</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a>) – Approximate value (y, x) in px for “zero” point (origin, zero order peak)</p></li>
+<li><p><strong>start_a</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a>) – Approximate value (y, x) in px for “a” vector.</p></li>
+<li><p><strong>start_b</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a>) – Approximate value (y, x) in px for “b” vector.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="libertem_blobfinder.udf.refinement.RefinementMixin">
+<em class="property">class </em><code class="sig-prename descclassname">libertem_blobfinder.udf.refinement.</code><code class="sig-name descname">RefinementMixin</code><a class="reference internal" href="_modules/libertem_blobfinder/udf/refinement.html#RefinementMixin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.refinement.RefinementMixin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>To be combined with a <code class="xref py py-class docutils literal notranslate"><span class="pre">libertem_blobfinder.CorrelationUDF</span></code>
+using multiple inheritance.</p>
+<p>The mixin must come before the UDF in the inheritance list.</p>
+<p>The subclasses implement a <code class="code docutils literal notranslate"><span class="pre">postprocess</span></code> method that calculates a
+refinement of start_zero, start_a and start_b based on the correlation
+result and populates the appropriate result buffers with this refinement
+result.</p>
+<p>This allows combining arbitrary implementations of correlation-based
+matching with arbitrary implementations of the refinement by declaring an
+ad-hoc class that inherits from one subclass of RefinementMixin and one
+subclass of CorrelationUDF.</p>
+<dl class="py method">
+<dt id="libertem_blobfinder.udf.refinement.RefinementMixin.apply_match">
+<code class="sig-name descname">apply_match</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">index</span></em>, <em class="sig-param"><span class="n">match</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/refinement.html#RefinementMixin.apply_match"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.refinement.RefinementMixin.apply_match" title="Permalink to this definition">¶</a></dt>
+<dd><p>Override this method to change how a match is saved in the result
+buffers, for example to support binned processing or ragged result
+arrays.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="libertem_blobfinder.udf.refinement.RefinementMixin.get_result_buffers">
+<code class="sig-name descname">get_result_buffers</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/refinement.html#RefinementMixin.get_result_buffers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.refinement.RefinementMixin.get_result_buffers" title="Permalink to this definition">¶</a></dt>
+<dd><p>This adds <code class="code docutils literal notranslate"><span class="pre">zero</span></code>, <code class="code docutils literal notranslate"><span class="pre">a</span></code>, <code class="code docutils literal notranslate"><span class="pre">b</span></code>, <code class="code docutils literal notranslate"><span class="pre">selector</span></code>,
+<code class="code docutils literal notranslate"><span class="pre">error</span></code> to the superclass result buffer declaration.</p>
+<dl class="simple">
+<dt><code class="code docutils literal notranslate"><span class="pre">zero</span></code>, <code class="code docutils literal notranslate"><span class="pre">a</span></code>, <code class="code docutils literal notranslate"><span class="pre">b</span></code>:</dt><dd><p>Grid refinement parameters for each frame.</p>
+</dd>
+<dt><code class="code docutils literal notranslate"><span class="pre">selector</span></code>:</dt><dd><p>Boolean mask of the peaks that were used in the fit.</p>
+</dd>
+<dt><code class="code docutils literal notranslate"><span class="pre">error</span></code>:</dt><dd><p>Residual of the fit.</p>
+</dd>
+</dl>
+<p>See source code for the exact buffer declaration.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="libertem_blobfinder.udf.refinement.run_refine">
+<code class="sig-prename descclassname">libertem_blobfinder.udf.refinement.</code><code class="sig-name descname">run_refine</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ctx</span></em>, <em class="sig-param"><span class="n">dataset</span></em>, <em class="sig-param"><span class="n">zero</span></em>, <em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">b</span></em>, <em class="sig-param"><span class="n">match_pattern</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#libertem_blobfinder.common.patterns.MatchPattern" title="libertem_blobfinder.common.patterns.MatchPattern">libertem_blobfinder.common.patterns.MatchPattern</a></span></em>, <em class="sig-param"><span class="n">matcher</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://libertem.github.io/LiberTEM/reference/app/strain.html#libertem.analysis.gridmatching.Matcher" title="(in LiberTEM v0.6)">libertem.analysis.gridmatching.Matcher</a></span></em>, <em class="sig-param"><span class="n">correlation</span><span class="o">=</span><span class="default_value">'fast'</span></em>, <em class="sig-param"><span class="n">match</span><span class="o">=</span><span class="default_value">'fast'</span></em>, <em class="sig-param"><span class="n">indices</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">steps</span><span class="o">=</span><span class="default_value">5</span></em>, <em class="sig-param"><span class="n">zero_shift</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">roi</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">progress</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/refinement.html#run_refine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.refinement.run_refine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper function to refine the given lattice for each frame by calculating
+approximate peak positions and refining them for each frame using a
+combination of <code class="xref py py-class docutils literal notranslate"><span class="pre">libertem_blobfinder.CorrelationUDF</span></code> and
+<code class="xref py py-class docutils literal notranslate"><span class="pre">libertem_blobfinder.RefinementMixin</span></code>.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 0.3.0: </span>Support for <code class="xref py py-class docutils literal notranslate"><span class="pre">FullFrameCorrelationUDF</span></code>
+through parameter <code class="code docutils literal notranslate"><span class="pre">correlation</span> <span class="pre">=</span> <span class="pre">'fullframe'</span></code></p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ctx</strong> (<a class="reference external" href="https://libertem.github.io/LiberTEM/reference/api.html#libertem.api.Context" title="(in LiberTEM v0.6)"><em>libertem.api.Context</em></a>) – Instance of a LiberTEM <a class="reference external" href="https://libertem.github.io/LiberTEM/reference/api.html#libertem.api.Context" title="(in LiberTEM v0.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Context</span></code></a></p></li>
+<li><p><strong>dataset</strong> (<a class="reference external" href="https://libertem.github.io/LiberTEM/reference/dataset.html#libertem.io.dataset.base.DataSet" title="(in LiberTEM v0.6)"><em>libertem.io.dataset.base.DataSet</em></a>) – Instance of a <a class="reference external" href="https://libertem.github.io/LiberTEM/reference/dataset.html#libertem.io.dataset.base.DataSet" title="(in LiberTEM v0.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataSet</span></code></a></p></li>
+<li><p><strong>zero</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a>) – Approximate value for “zero” point (y, x) in px (origin, zero order
+peak)</p></li>
+<li><p><strong>a</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a>) – Approximate value for “a” vector (y, x) in px.</p></li>
+<li><p><strong>b</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a>) – Approximate value for “b” vector (y, x) in px.</p></li>
+<li><p><strong>match_pattern</strong> (<a class="reference internal" href="#libertem_blobfinder.common.patterns.MatchPattern" title="libertem_blobfinder.common.patterns.MatchPattern"><em>MatchPattern</em></a>) – Instance of <code class="xref py py-class docutils literal notranslate"><span class="pre">MatchPattern</span></code></p></li>
+<li><p><strong>matcher</strong> (<a class="reference external" href="https://libertem.github.io/LiberTEM/reference/app/strain.html#libertem.analysis.gridmatching.Matcher" title="(in LiberTEM v0.6)"><em>libertem.analysis.gridmatching.Matcher</em></a>) – Instance of <a class="reference external" href="https://libertem.github.io/LiberTEM/reference/app/strain.html#libertem.analysis.gridmatching.Matcher" title="(in LiberTEM v0.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Matcher</span></code></a> to perform the matching</p></li>
+<li><p><strong>correlation</strong> (<em>{'fast'</em><em>, </em><em>'sparse'</em><em>, </em><em>'fullframe'}</em><em>, </em><em>optional</em>) – ‘fast’, ‘sparse’ or ‘fullframe’ to select <code class="xref py py-class docutils literal notranslate"><span class="pre">FastCorrelationUDF</span></code>,
+<code class="xref py py-class docutils literal notranslate"><span class="pre">SparseCorrelationUDF</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">FullFrameCorrelationUDF</span></code></p></li>
+<li><p><strong>match</strong> (<em>{'fast'</em><em>, </em><em>'affine'}</em><em>, </em><em>optional</em>) – ‘fast’ or ‘affine’ to select
+<a class="reference internal" href="#libertem_blobfinder.udf.refinement.FastmatchMixin" title="libertem_blobfinder.udf.refinement.FastmatchMixin"><code class="xref py py-class docutils literal notranslate"><span class="pre">FastmatchMixin</span></code></a> or <a class="reference internal" href="#libertem_blobfinder.udf.refinement.AffineMixin" title="libertem_blobfinder.udf.refinement.AffineMixin"><code class="xref py py-class docutils literal notranslate"><span class="pre">AffineMixin</span></code></a></p></li>
+<li><p><strong>indices</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a><em>, </em><em>optional</em>) – Indices to refine. This is trimmed down to
+positions within the frame. As a convenience, for the indices parameter
+this function accepts both shape (n, 2) and (2, n, m) so that
+numpy.mgrid[h:k, i:j] works directly to specify indices. This saves
+boilerplate code when using this function.
+Default: numpy.mgrid[-10:10, -10:10].</p></li>
+<li><p><strong>steps</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Only for correlation == ‘sparse’: Correlation steps. See
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">__init__()</span></code> for
+details.</p></li>
+<li><p><strong>zero_shift</strong> (<em>Union</em><em>[</em><em>AUXBufferWrapper</em><em>, </em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3.7/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em>]</em><em>, </em><em>optional</em>) – Zero shift, for example descan error. Can be <code class="code docutils literal notranslate"><span class="pre">None</span></code>, <code class="code docutils literal notranslate"><span class="pre">numpy.array((y,</span> <span class="pre">x))</span></code>
+or AUX data with <code class="code docutils literal notranslate"><span class="pre">(y,</span> <span class="pre">x)</span></code> for each frame. Only supported for correlation methods
+<code class="code docutils literal notranslate"><span class="pre">fast</span></code> and <cite>fullframe</cite>.</p></li>
+<li><p><strong>roi</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)"><em>numpy.ndarray</em></a><em>, </em><em>optional</em>) – ROI for <a class="reference external" href="https://libertem.github.io/LiberTEM/reference/api.html#libertem.api.Context.run_udf" title="(in LiberTEM v0.6)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run_udf()</span></code></a></p></li>
+<li><p><strong>progress</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Show progress bar. Default <code class="code docutils literal notranslate"><span class="pre">False</span></code></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>result</strong> (<em>Dict[str, BufferWrapper]</em>) – Result buffers of the UDF. See
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">libertem_blobfinder.correlation.CorrelationUDF.get_result_buffers()</span></code> and
+<a class="reference internal" href="#libertem_blobfinder.udf.refinement.RefinementMixin.get_result_buffers" title="libertem_blobfinder.udf.refinement.RefinementMixin.get_result_buffers"><code class="xref py py-meth docutils literal notranslate"><span class="pre">RefinementMixin.get_result_buffers()</span></code></a> for details on the available
+buffers.</p></li>
+<li><p><strong>used_indices</strong> (<em>numpy.ndarray</em>) – The peak indices that were within the frame.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">filetype</span><span class="o">=</span><span class="s2">&quot;memory&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">data</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">used_indices</span><span class="p">)</span> <span class="o">=</span> <span class="n">run_refine</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">ctx</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">zero</span><span class="o">=</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span> <span class="n">a</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">b</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">match_pattern</span><span class="o">=</span><span class="n">libertem_blobfinder</span><span class="o">.</span><span class="n">common</span><span class="o">.</span><span class="n">patterns</span><span class="o">.</span><span class="n">RadialGradient</span><span class="p">(</span><span class="n">radius</span><span class="o">=</span><span class="mi">4</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">matcher</span><span class="o">=</span><span class="n">grm</span><span class="o">.</span><span class="n">Matcher</span><span class="p">()</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;centers&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>  
+<span class="go">array(...)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="integration">
+<h3>Integration<a class="headerlink" href="#integration" title="Permalink to this headline">¶</a></h3>
+<p>UDFs to integrate peak intensity with positions specified per frame. If the peak
+positions are sufficiently similar for all frames, you can use
+<a class="reference internal" href="#libertem_blobfinder.common.patterns.feature_vector" title="libertem_blobfinder.common.patterns.feature_vector"><code class="xref py py-meth docutils literal notranslate"><span class="pre">libertem_blobfinder.common.patterns.feature_vector()</span></code></a> together with
+<a class="reference external" href="https://libertem.github.io/LiberTEM/reference/udf.html#libertem.udf.masks.ApplyMasksUDF" title="(in LiberTEM v0.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">libertem.udf.masks.ApplyMasksUDF</span></code></a> instead.</p>
+<span class="target" id="module-libertem_blobfinder.udf.integration"></span><dl class="py class">
+<dt id="libertem_blobfinder.udf.integration.IntegrationUDF">
+<em class="property">class </em><code class="sig-prename descclassname">libertem_blobfinder.udf.integration.</code><code class="sig-name descname">IntegrationUDF</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">centers</span></em>, <em class="sig-param"><span class="n">pattern</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/integration.html#IntegrationUDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.integration.IntegrationUDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://libertem.github.io/LiberTEM/reference/udf.html#libertem.udf.base.UDF" title="(in LiberTEM v0.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">libertem.udf.base.UDF</span></code></a></p>
+<dl class="py method">
+<dt id="libertem_blobfinder.udf.integration.IntegrationUDF.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">centers</span></em>, <em class="sig-param"><span class="n">pattern</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/integration.html#IntegrationUDF.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.integration.IntegrationUDF.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Integrate peak intensity at positions that are specified for each frame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>centers</strong> (<em>AUXBufferWrapper</em>) – Peak positions (y, x) as AUX buffer wrapper of kind “nav”, extra_shape (num_peaks, 2)
+and integer dtype.</p></li>
+<li><p><strong>pattern</strong> (<a class="reference internal" href="#libertem_blobfinder.common.patterns.MatchPattern" title="libertem_blobfinder.common.patterns.MatchPattern"><em>libertem_blobfinder.common.patterns.MatchPattern</em></a>) – Match pattern with the weight for each pixels.
+<a class="reference internal" href="#libertem_blobfinder.common.patterns.BackgroundSubtraction" title="libertem_blobfinder.common.patterns.BackgroundSubtraction"><code class="xref py py-class docutils literal notranslate"><span class="pre">libertem_blobfinder.common.patterns.BackgroundSubtraction</span></code></a> or
+<a class="reference internal" href="#libertem_blobfinder.common.patterns.Circular" title="libertem_blobfinder.common.patterns.Circular"><code class="xref py py-class docutils literal notranslate"><span class="pre">libertem_blobfinder.common.patterns.Circular</span></code></a> can be good choices.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">libertem_blobfinder.udf.integration</span> <span class="kn">import</span> <span class="n">IntegrationUDF</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">libertem_blobfinder.common.patterns</span> <span class="kn">import</span> <span class="n">BackgroundSubtraction</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">nav_shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">nav</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sig_shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">sig</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">extra_shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># three peaks with coordinates (y, x)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">peaks_shape</span> <span class="o">=</span> <span class="n">nav_shape</span> <span class="o">+</span> <span class="n">extra_shape</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Generate some random positions as an example</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">peaks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">sig_shape</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">peaks_shape</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Create an AuxBufferWrapper for the peaks</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">centers</span> <span class="o">=</span> <span class="n">IntegrationUDF</span><span class="o">.</span><span class="n">aux_data</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">data</span><span class="o">=</span><span class="n">peaks</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;nav&#39;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">extra_shape</span><span class="o">=</span><span class="n">extra_shape</span>
+<span class="gp">... </span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">udf</span> <span class="o">=</span> <span class="n">IntegrationUDF</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">centers</span><span class="o">=</span><span class="n">centers</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">pattern</span><span class="o">=</span><span class="n">BackgroundSubtraction</span><span class="p">(</span><span class="n">radius</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">radius_outer</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+<span class="gp">... </span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">run_udf</span><span class="p">(</span><span class="n">udf</span><span class="o">=</span><span class="n">udf</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">nav_shape</span>
+<span class="go">(16, 16)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Integration result for each frame and peak</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;integration&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(16, 16, 3)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="libertem_blobfinder.udf.integration.IntegrationUDF.get_result_buffers">
+<code class="sig-name descname">get_result_buffers</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/integration.html#IntegrationUDF.get_result_buffers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.integration.IntegrationUDF.get_result_buffers" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt><code class="code docutils literal notranslate"><span class="pre">integration</span></code>:</dt><dd><p>Integrated intensity for each peak. Kind “nav”, extra_shape (num_peaks, )</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="libertem_blobfinder.udf.integration.IntegrationUDF.get_task_data">
+<code class="sig-name descname">get_task_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/integration.html#IntegrationUDF.get_task_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.integration.IntegrationUDF.get_task_data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="libertem_blobfinder.udf.integration.IntegrationUDF.process_frame">
+<code class="sig-name descname">process_frame</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">frame</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/integration.html#IntegrationUDF.process_frame"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.integration.IntegrationUDF.process_frame" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="utilities">
+<h3>Utilities<a class="headerlink" href="#utilities" title="Permalink to this headline">¶</a></h3>
+<p>General utility functions.</p>
+<span class="target" id="module-libertem_blobfinder.udf.utils"></span><dl class="py function">
+<dt id="libertem_blobfinder.udf.utils.visualize_frame">
+<code class="sig-prename descclassname">libertem_blobfinder.udf.utils.</code><code class="sig-name descname">visualize_frame</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ctx</span></em>, <em class="sig-param"><span class="n">ds</span></em>, <em class="sig-param"><span class="n">result</span></em>, <em class="sig-param"><span class="n">indices</span></em>, <em class="sig-param"><span class="n">r</span></em>, <em class="sig-param"><span class="n">y</span></em>, <em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">axes</span></em>, <em class="sig-param"><span class="n">colors</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">stretch</span><span class="o">=</span><span class="default_value">10</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/libertem_blobfinder/udf/utils.html#visualize_frame"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#libertem_blobfinder.udf.utils.visualize_frame" title="Permalink to this definition">¶</a></dt>
+<dd><p>Visualize the refinement of a specific frame in matplotlib axes</p>
+</dd></dl>
+
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">LiberTEM-blobfinder</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#basic-numerics-functions">Basic numerics functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#common-classes-and-functions">Common classes and functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#user-defined-functions">User-defined functions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="changelog/features/zeroshift.html" title="previous chapter">[Feature] Allow specifying per-frame origin shift</a></li>
+      <li>Next: <a href="acknowledgments.html" title="next chapter">Acknowledgments</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;LiberTEM-blobfinder Authors.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/reference.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

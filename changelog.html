@@ -1,0 +1,174 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Changelog &#8212; LiberTEM-blobfinder 0.5.0.dev0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="[Feature] Precise peak integration" href="changelog/features/integration.html" />
+    <link rel="prev" title="Refine lattice parameters on polycrystalline sample" href="strainmap-poly.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="changelog">
+<h1>Changelog<a class="headerlink" href="#changelog" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="dev0-continuous">
+<span id="v0-5-0"></span><span id="continuous"></span><h2>0.5.0.dev0 (continuous)<a class="headerlink" href="#dev0-continuous" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="changelog/features/integration.html">[Feature] Precise peak integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog/features/progress.html">[Feature] Support progress bar</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog/features/zeroshift.html">[Feature] Allow specifying per-frame origin shift</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="v0-4-1">
+<span id="latest"></span><span id="id1"></span><h2>0.4.1<a class="headerlink" href="#v0-4-1" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="bug-fixes">
+<h3>Bug fixes<a class="headerlink" href="#bug-fixes" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Ensure compatibility with numba&gt;=0.50 <a class="reference external" href="https://github.com/LiberTEM/LiberTEM-blobfinder/pull/28">#28</a></p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="v0-4-0">
+<span id="id2"></span><h2>0.4.0<a class="headerlink" href="#v0-4-0" title="Permalink to this headline">¶</a></h2>
+<a class="reference external image-reference" href="https://doi.org/10.5281/zenodo.3663437"><img alt="https://zenodo.org/badge/DOI/10.5281/zenodo.3663437.svg" src="https://zenodo.org/badge/DOI/10.5281/zenodo.3663437.svg" /></a>
+<p>The first release independent of LiberTEM. Changes relative to LiberTEM version 0.3.0:</p>
+<div class="section" id="id3">
+<h3>Bug fixes<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Fix bounds checking, size and index calculation bugs
+(<a class="reference external" href="https://github.com/LiberTEM/LiberTEM/issues/539">https://github.com/LiberTEM/LiberTEM/issues/539</a>,
+<a class="reference external" href="https://github.com/LiberTEM/LiberTEM/pull/548">https://github.com/LiberTEM/LiberTEM/pull/548</a>)</p></li>
+</ul>
+</div>
+<div class="section" id="features">
+<h3>Features<a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Access to the correlation pattern for peak finding through
+<a class="reference internal" href="reference.html#libertem_blobfinder.common.correlation.get_correlation" title="libertem_blobfinder.common.correlation.get_correlation"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_correlation()</span></code></a>
+(<a class="reference external" href="https://github.com/LiberTEM/LiberTEM/pull/571">https://github.com/LiberTEM/LiberTEM/pull/571</a>)</p></li>
+</ul>
+</div>
+<div class="section" id="misc">
+<h3>Misc<a class="headerlink" href="#misc" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>The code was extracted from LiberTEM and restructured. See <a class="reference external" href="https://github.com/LiberTEM/LiberTEM-blobfinder/pull/1">#1</a>, <a class="reference external" href="https://github.com/LiberTEM/LiberTEM-blobfinder/pull/14">#14</a>, <a class="reference external" href="https://github.com/LiberTEM/LiberTEM-blobfinder/pull/16">#16</a>
+and <a class="reference internal" href="reference.html#blobfinder-api"><span class="std std-ref">Reference</span></a> for details on the new structure!</p></li>
+</ul>
+</div>
+<div class="section" id="obsolescence">
+<h3>Obsolescence<a class="headerlink" href="#obsolescence" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Importing blobfinder from LiberTEM is deprecated and will only
+be supported until 0.6.0. Import from this new package instead.</p></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">LiberTEM-blobfinder</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#dev0-continuous">0.5.0.dev0 (continuous)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#v0-4-1">0.4.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#v0-4-0">0.4.0</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="strainmap-poly.html" title="previous chapter">Refine lattice parameters on polycrystalline sample</a></li>
+      <li>Next: <a href="changelog/features/integration.html" title="next chapter">[Feature] Precise peak integration</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;LiberTEM-blobfinder Authors.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/changelog.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

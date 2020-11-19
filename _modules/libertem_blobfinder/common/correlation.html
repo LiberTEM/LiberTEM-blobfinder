@@ -1,0 +1,306 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>libertem_blobfinder.common.correlation &#8212; LiberTEM-blobfinder 0.5.0.dev0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for libertem_blobfinder.common.correlation</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">skimage.feature</span> <span class="kn">import</span> <span class="n">peak_local_max</span>
+
+<span class="kn">from</span> <span class="nn">libertem_blobfinder.common.patterns</span> <span class="kn">import</span> <span class="n">MatchPattern</span>
+<span class="kn">from</span> <span class="nn">libertem_blobfinder</span> <span class="kn">import</span> <span class="n">base</span>
+
+
+<div class="viewcode-block" id="get_correlation"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.common.correlation.get_correlation">[docs]</a><span class="k">def</span> <span class="nf">get_correlation</span><span class="p">(</span><span class="n">sum_result</span><span class="p">,</span> <span class="n">match_pattern</span><span class="p">:</span> <span class="n">MatchPattern</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Calculate the correlation between :code:`sum_result` and :code:`match_pattern`.</span>
+
+<span class="sd">    .. versionadded:: 0.4.0.dev0</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    sum_result: numpy.ndarray</span>
+<span class="sd">        2D result frame as correlation input</span>
+<span class="sd">    match_pattern : MatchPattern</span>
+<span class="sd">        Instance of :class:`~libertem_blobfinder.MatchPattern` to correlate</span>
+<span class="sd">        :code:`sum_result` with</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">spec_mask</span> <span class="o">=</span> <span class="n">match_pattern</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="n">sig_shape</span><span class="o">=</span><span class="n">sum_result</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">spec_sum</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">correlation</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">rfft2</span><span class="p">(</span><span class="n">sum_result</span><span class="p">)</span>
+    <span class="n">corrspec</span> <span class="o">=</span> <span class="n">spec_mask</span> <span class="o">*</span> <span class="n">spec_sum</span>
+    <span class="k">return</span> <span class="n">base</span><span class="o">.</span><span class="n">correlation</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">base</span><span class="o">.</span><span class="n">correlation</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">irfft2</span><span class="p">(</span><span class="n">corrspec</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="get_peaks"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.common.correlation.get_peaks">[docs]</a><span class="k">def</span> <span class="nf">get_peaks</span><span class="p">(</span><span class="n">sum_result</span><span class="p">,</span> <span class="n">match_pattern</span><span class="p">:</span> <span class="n">MatchPattern</span><span class="p">,</span> <span class="n">num_peaks</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Find peaks of the correlation between :code:`sum_result` and :code:`match_pattern`.</span>
+
+<span class="sd">    The result  can then be used as input to</span>
+<span class="sd">    :meth:`~libertem.analysis.fullmatch.FullMatcher.full_match`</span>
+<span class="sd">    to extract grid parameters, :meth:`~libertem_blobfinder.correlation.run_fastcorrelation`</span>
+<span class="sd">    to find the position in each frame or to construct a mask to extract feature vectors with</span>
+<span class="sd">    :meth:`~libertem_blobfinder.common.patterns.feature_vector`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    sum_result: numpy.ndarray</span>
+<span class="sd">        2D result frame as correlation input</span>
+<span class="sd">    match_pattern : MatchPattern</span>
+<span class="sd">        Instance of :class:`~libertem_blobfinder.MatchPattern` to correlate</span>
+<span class="sd">        :code:`sum_result` with</span>
+<span class="sd">    num_peaks : int</span>
+<span class="sd">        Number of peaks to find</span>
+
+<span class="sd">    Example</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    &gt;&gt;&gt; frame, _, _ = libertem.utils.generate.cbed_frame(radius=4)</span>
+<span class="sd">    &gt;&gt;&gt; pattern = libertem_blobfinder.common.patterns.RadialGradient(radius=4)</span>
+<span class="sd">    &gt;&gt;&gt; peaks = get_peaks(frame[0], pattern, 7)</span>
+<span class="sd">    &gt;&gt;&gt; print(peaks)</span>
+<span class="sd">    [[64 64]</span>
+<span class="sd">     [64 80]</span>
+<span class="sd">     [80 80]</span>
+<span class="sd">     [80 64]</span>
+<span class="sd">     [48 80]</span>
+<span class="sd">     [48 64]</span>
+<span class="sd">     [64 96]]</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">corr</span> <span class="o">=</span> <span class="n">get_correlation</span><span class="p">(</span><span class="n">sum_result</span><span class="p">,</span> <span class="n">match_pattern</span><span class="p">)</span>
+    <span class="n">peaks</span> <span class="o">=</span> <span class="n">peak_local_max</span><span class="p">(</span><span class="n">corr</span><span class="p">,</span> <span class="n">num_peaks</span><span class="o">=</span><span class="n">num_peaks</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">peaks</span></div>
+
+
+<div class="viewcode-block" id="process_frames_fast"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.common.correlation.process_frames_fast">[docs]</a><span class="k">def</span> <span class="nf">process_frames_fast</span><span class="p">(</span><span class="n">pattern</span><span class="p">:</span> <span class="n">MatchPattern</span><span class="p">,</span> <span class="n">frames</span><span class="p">,</span> <span class="n">peaks</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Find the parameters of peaks in a diffraction pattern by correlation with a match pattern.</span>
+
+<span class="sd">    This method crops regions of interest around the peaks from the frames before correlation,</span>
+<span class="sd">    which is usually fastest for a moderate amount of moderately sized peaks per frame.</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        :class:`~libertem_blobfinder.udf.correlation.FastCorrelationUDF` is a</span>
+<span class="sd">        parallelized, distributed version for large-scale data.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pattern : MatchPattern</span>
+<span class="sd">        Pattern to correlate with.</span>
+<span class="sd">    frames : np.ndarray</span>
+<span class="sd">        Frame data. Currently, only Real values are supported.</span>
+<span class="sd">    peaks : np.ndarray</span>
+<span class="sd">        List of peaks of shape (n_peaks, 2)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    centers : np.ndarray</span>
+<span class="sd">        Center positions of shape (n_peaks, 2) and integer dtype.</span>
+<span class="sd">    refineds : np.ndarray</span>
+<span class="sd">        Refined center positions of shape (n_peaks, 2) and float dtype.</span>
+<span class="sd">    heights : np.ndarray</span>
+<span class="sd">        Peak height in log scaled frame. Shape (n_peaks, ) and float dtype.</span>
+<span class="sd">    elevations : np.ndarray</span>
+<span class="sd">        Peak elevation in log scaled frame. Shape (n_peaks, ) and float dtype</span>
+
+<span class="sd">    Example</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    &gt;&gt;&gt; frames, indices, peaks = libertem.utils.generate.cbed_frame()</span>
+<span class="sd">    &gt;&gt;&gt; pattern = libertem_blobfinder.common.patterns.RadialGradient(radius=4)</span>
+<span class="sd">    &gt;&gt;&gt; (centers, refineds, heights, elevations) = process_frames_fast(</span>
+<span class="sd">    ...     pattern=pattern,</span>
+<span class="sd">    ...     frames=frames,</span>
+<span class="sd">    ...     peaks=peaks.astype(np.int32),</span>
+<span class="sd">    ... )</span>
+<span class="sd">    &gt;&gt;&gt; assert np.allclose(refineds[0], peaks, atol=0.1)</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">crop_size</span> <span class="o">=</span> <span class="n">pattern</span><span class="o">.</span><span class="n">get_crop_size</span><span class="p">()</span>
+    <span class="n">template</span> <span class="o">=</span> <span class="n">pattern</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="n">sig_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">crop_size</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">crop_size</span><span class="p">))</span>
+
+    <span class="n">centers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">frames</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaks</span><span class="p">),</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">)</span>
+    <span class="n">refineds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">frames</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaks</span><span class="p">),</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">heights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">frames</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaks</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">elevations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">frames</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaks</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="n">crop_bufs</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">correlation</span><span class="o">.</span><span class="n">allocate_crop_bufs</span><span class="p">(</span><span class="n">crop_size</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaks</span><span class="p">),</span> <span class="n">frames</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">frames</span><span class="p">):</span>
+        <span class="n">base</span><span class="o">.</span><span class="n">correlation</span><span class="o">.</span><span class="n">process_frame_fast</span><span class="p">(</span>
+            <span class="n">template</span><span class="o">=</span><span class="n">template</span><span class="p">,</span> <span class="n">crop_size</span><span class="o">=</span><span class="n">crop_size</span><span class="p">,</span>
+            <span class="n">frame</span><span class="o">=</span><span class="n">f</span><span class="p">,</span> <span class="n">peaks</span><span class="o">=</span><span class="n">peaks</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+            <span class="n">out_centers</span><span class="o">=</span><span class="n">centers</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">out_refineds</span><span class="o">=</span><span class="n">refineds</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+            <span class="n">out_heights</span><span class="o">=</span><span class="n">heights</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">out_elevations</span><span class="o">=</span><span class="n">elevations</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+            <span class="n">crop_bufs</span><span class="o">=</span><span class="n">crop_bufs</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">centers</span><span class="p">,</span> <span class="n">refineds</span><span class="p">,</span> <span class="n">heights</span><span class="p">,</span> <span class="n">elevations</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="process_frames_full"><a class="viewcode-back" href="../../../reference.html#libertem_blobfinder.common.correlation.process_frames_full">[docs]</a><span class="k">def</span> <span class="nf">process_frames_full</span><span class="p">(</span><span class="n">pattern</span><span class="p">:</span> <span class="n">MatchPattern</span><span class="p">,</span> <span class="n">frames</span><span class="p">,</span> <span class="n">peaks</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Find the parameters of peaks in a diffraction pattern by correlation with a match pattern.</span>
+
+<span class="sd">    This method crops regions of interest around the peaks after correlation,</span>
+<span class="sd">    which can be faster for many peaks on smaller frames.</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        :class:`~libertem_blobfinder.udf.correlation.FullFrameCorrelationUDF` is a</span>
+<span class="sd">        parallelized, distributed version for large-scale data.</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pattern : MatchPattern</span>
+<span class="sd">        Pattern to correlate with.</span>
+<span class="sd">    frame : np.ndarray</span>
+<span class="sd">        Frame data. Currently, only real values are supported.</span>
+<span class="sd">    peaks : np.ndarray</span>
+<span class="sd">        List of peaks of shape (n_peaks, 2)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    centers : np.ndarray</span>
+<span class="sd">        Center positions of shape (n_peaks, 2) and integer dtype.</span>
+<span class="sd">    refineds : np.ndarray</span>
+<span class="sd">        Refined center positions of shape (n_peaks, 2) and float dtype.</span>
+<span class="sd">    heights : np.ndarray</span>
+<span class="sd">        Peak height in log scaled frame. Shape (n_peaks, ) and float dtype.</span>
+<span class="sd">    elevations : np.ndarray</span>
+<span class="sd">        Peak elevation in log scaled frame. Shape (n_peaks, ) and float dtype</span>
+
+<span class="sd">    Example</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    &gt;&gt;&gt; frames, indices, peaks = libertem.utils.generate.cbed_frame(radius=4)</span>
+<span class="sd">    &gt;&gt;&gt; pattern = libertem_blobfinder.common.patterns.RadialGradient(radius=4)</span>
+<span class="sd">    &gt;&gt;&gt; (centers, refineds, heights, elevations) = process_frames_full(</span>
+<span class="sd">    ...     pattern=pattern,</span>
+<span class="sd">    ...     frames=frames,</span>
+<span class="sd">    ...     peaks=peaks.astype(np.int32)</span>
+<span class="sd">    ... )</span>
+<span class="sd">    &gt;&gt;&gt; assert np.allclose(refineds[0], peaks, atol=0.1)</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">crop_size</span> <span class="o">=</span> <span class="n">pattern</span><span class="o">.</span><span class="n">get_crop_size</span><span class="p">()</span>
+    <span class="n">template</span> <span class="o">=</span> <span class="n">pattern</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="n">sig_shape</span><span class="o">=</span><span class="n">frames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+    <span class="n">centers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">frames</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaks</span><span class="p">),</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">)</span>
+    <span class="n">refineds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">frames</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaks</span><span class="p">),</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">heights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">frames</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaks</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">elevations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">frames</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaks</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="n">frame_buf</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">correlation</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">frames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="n">buf_count</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">correlation</span><span class="o">.</span><span class="n">get_buf_count</span><span class="p">(</span><span class="n">crop_size</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaks</span><span class="p">),</span> <span class="n">frame_buf</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">frames</span><span class="p">):</span>
+        <span class="n">base</span><span class="o">.</span><span class="n">correlation</span><span class="o">.</span><span class="n">process_frame_full</span><span class="p">(</span>
+            <span class="n">template</span><span class="o">=</span><span class="n">template</span><span class="p">,</span> <span class="n">crop_size</span><span class="o">=</span><span class="n">crop_size</span><span class="p">,</span>
+            <span class="n">frame</span><span class="o">=</span><span class="n">f</span><span class="p">,</span> <span class="n">peaks</span><span class="o">=</span><span class="n">peaks</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+            <span class="n">out_centers</span><span class="o">=</span><span class="n">centers</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">out_refineds</span><span class="o">=</span><span class="n">refineds</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+            <span class="n">out_heights</span><span class="o">=</span><span class="n">heights</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">out_elevations</span><span class="o">=</span><span class="n">elevations</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+            <span class="n">frame_buf</span><span class="o">=</span><span class="n">frame_buf</span><span class="p">,</span> <span class="n">buf_count</span><span class="o">=</span><span class="n">buf_count</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">centers</span><span class="p">,</span> <span class="n">refineds</span><span class="p">,</span> <span class="n">heights</span><span class="p">,</span> <span class="n">elevations</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">LiberTEM-blobfinder</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../acknowledgments.html">Acknowledgments</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;LiberTEM-blobfinder Authors.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
