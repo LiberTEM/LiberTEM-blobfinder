@@ -331,8 +331,7 @@ class SparseCorrelationUDF(CorrelationUDF):
 
 
 def run_fastcorrelation(
-        ctx, dataset, peaks, match_pattern: MatchPattern, zero_shift=None, roi=None,
-        progress=False):
+        ctx, dataset, peaks, match_pattern: MatchPattern, zero_shift=None, **kwargs):
     """
     Wrapper function to construct and run a :class:`FastCorrelationUDF`
 
@@ -346,10 +345,7 @@ def run_fastcorrelation(
     zero_shift : Union[AUXBufferWrapper, numpy.ndarray, None], optional
         Zero shift, for example descan error. Can be :code:`None`, :code:`numpy.array((y, x))`
         or AUX data with :code:`(y, x)` for each frame.
-    roi : numpy.ndarray, optional
-        Boolean mask of the navigation dimension to select region of interest (ROI)
-    progress : bool, optional
-        Show progress bar
+    kwargs : passed through to :meth:`~libertem.api.Context.run_udf`
 
     Returns
     -------
@@ -358,7 +354,7 @@ def run_fastcorrelation(
     """
     peaks = peaks.astype(np.int)
     udf = FastCorrelationUDF(peaks=peaks, match_pattern=match_pattern, zero_shift=zero_shift)
-    return ctx.run_udf(dataset=dataset, udf=udf, roi=roi, progress=progress)
+    return ctx.run_udf(dataset=dataset, udf=udf, **kwargs)
 
 
 def run_blobfinder(ctx, dataset, match_pattern: MatchPattern, num_peaks, roi=None, progress=False):

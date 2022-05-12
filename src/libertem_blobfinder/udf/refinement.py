@@ -149,8 +149,7 @@ class AffineMixin(RefinementMixin):
 
 def run_refine(
         ctx, dataset, zero, a, b, match_pattern: MatchPattern, matcher: grm.Matcher,
-        correlation='fast', match='fast', indices=None, steps=5, zero_shift=None, roi=None,
-        progress=False):
+        correlation='fast', match='fast', indices=None, steps=5, zero_shift=None, **kwargs):
     '''
     Wrapper function to refine the given lattice for each frame by calculating
     approximate peak positions and refining them for each frame using a
@@ -200,10 +199,7 @@ def run_refine(
         Zero shift, for example descan error. Can be :code:`None`, :code:`numpy.array((y, x))`
         or AUX data with :code:`(y, x)` for each frame. Only supported for correlation methods
         :code:`fast` and `fullframe`.
-    roi : numpy.ndarray, optional
-        ROI for :meth:`~libertem.api.Context.run_udf`
-    progress : bool, optional
-        Show progress bar. Default :code:`False`
+    kwargs : passed through to :meth:`~libertem.api.Context.run_udf`
 
     Returns
     -------
@@ -282,7 +278,6 @@ def run_refine(
     result = ctx.run_udf(
         dataset=dataset,
         udf=udf,
-        roi=roi,
-        progress=progress
+        **kwargs
     )
     return (result, indices)
