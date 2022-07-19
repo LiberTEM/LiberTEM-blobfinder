@@ -16,6 +16,14 @@
         "orcid": "0000-0001-6635-9567"
     },
     {
+        "displayname": "Matthew Bryan",
+        "authorname": "Bryan, Matthew",
+        "affiliation": "CEA-Leti",
+        "github": "matbryan52",
+        "orcid": "0000-0001-9134-384X",
+        "contribution": "PhaseCorrelationUDF, bugfixes"
+    },    
+    {
         "displayname": "Karina Ruzaeva",
         "authorname": "Ruzaeva, Karina",
         "affiliation": "Jülich Research Centre" ,
