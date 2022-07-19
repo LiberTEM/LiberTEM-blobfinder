@@ -330,6 +330,51 @@ class SparseCorrelationUDF(CorrelationUDF):
             )
 
 
+class PhaseCorrelationUDF(FastCorrelationUDF):
+    def get_task_data(self):
+        n_peaks = len(self.get_peaks())
+        pattern = self.get_pattern()
+        crop_size = pattern.get_crop_size()
+        mask = pattern.get_mask(sig_shape=(2 * crop_size, 2 * crop_size))
+        template_fft = ltbc.fft.fft2(mask)
+        dtype = np.result_type(self.meta.input_dtype, np.float32)
+        crop_bufs = ltbc.allocate_crop_bufs(crop_size, n_peaks, dtype=dtype, limit=self.limit)
+        kwargs = {
+            'template_fft': template_fft,
+            'crop_bufs': crop_bufs,
+        }
+        return kwargs
+
+    def process_frame(self, frame):
+        template_fft = self.task_data.template_fft
+        match_pattern = self.get_pattern()
+        (centers, refineds, peak_values, peak_elevations) = self.output_buffers()
+
+        # FIXME replace these try/except blocks with self.params.get when fixed
+        try:
+            upsample_factor = self.params.upsample_factor
+        except AttributeError:
+            upsample_factor = 50
+        try:
+            normalization = self.params.normalization
+        except AttributeError:
+            normalization = None
+
+        ltbc.process_frame_phase(
+            template_fft=template_fft,
+            crop_size=match_pattern.get_crop_size(),
+            frame=frame,
+            peaks=self.get_peaks() + np.round(self.get_zero_shift()).astype(int),
+            out_centers=centers,
+            out_refineds=refineds,
+            out_heights=peak_values,
+            out_elevations=peak_elevations,
+            crop_bufs=self.task_data.crop_bufs,
+            upsample_factor=upsample_factor,
+            normalization=normalization,
+        )
+
+
 def run_fastcorrelation(
         ctx, dataset, peaks, match_pattern: MatchPattern, zero_shift=None, **kwargs):
     """
@@ -405,3 +450,38 @@ def run_blobfinder(ctx, dataset, match_pattern: MatchPattern, num_peaks, roi=Non
     return (sum_result, pass_2_results['centers'],
         pass_2_results['refineds'], pass_2_results['peak_values'],
         pass_2_results['peak_elevations'], peaks)
+
+
+def run_phasecorrelation(
+        ctx, dataset, peaks, match_pattern: MatchPattern, zero_shift=None,
+        upsample_factor=50, phase_normalization=None, **kwargs):
+    """
+    Wrapper function to construct and run a :class:`PhaseCorrelationUDF`
+
+    Parameters
+    ----------
+    ctx : libertem.api.Context
+    dataset : libertem.io.dataset.base.DataSet
+    peaks : numpy.ndarray
+        List of peaks with (y, x) coordinates
+    match_pattern : libertem_blobfinder.patterns.MatchPattern
+    zero_shift : Union[AUXBufferWrapper, numpy.ndarray, None], optional
+        Zero shift, for example descan error. Can be :code:`None`, :code:`numpy.array((y, x))`
+        or AUX data with :code:`(y, x)` for each frame.
+    upsample_factor : int, optional
+        The resolution upsampling factor for sub-pixel refinement, which will
+        give a final precision of (1 / upsample_factor) px, by default 50
+    phase_normalization : Union[None, Literal['phase']], optional
+        The normalization applied to the cross-correlation, for noisy data
+        `None` is optimal, see `skimage.registration` doc.
+    kwargs : passed through to :meth:`~libertem.api.Context.run_udf`
+
+    Returns
+    -------
+    buffers : Dict[libertem.common.buffers.BufferWrapper]
+        See :meth:`CorrelationUDF.get_result_buffers` for details.
+    """
+    peaks = peaks.astype(np.int)
+    udf = PhaseCorrelationUDF(peaks=peaks, match_pattern=match_pattern, zero_shift=zero_shift,
+                              upsample_factor=upsample_factor, normalization=phase_normalization)
+    return ctx.run_udf(dataset=dataset, udf=udf, **kwargs)

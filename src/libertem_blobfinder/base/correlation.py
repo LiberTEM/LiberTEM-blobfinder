@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import numba
+from skimage.registration import phase_cross_correlation
 
 
 # FIXME There's work on flexible FFT backends in scipy
@@ -440,3 +441,41 @@ def process_frame_full(template, crop_size, frame, peaks,
             out_centers=out_centers[start:stop], out_refineds=out_refineds[start:stop],
             out_heights=out_heights[start:stop], out_elevations=out_elevations[start:stop]
         )
+
+
+def process_frame_phase(template_fft, crop_size, frame, peaks,
+                        out_centers, out_refineds, out_heights, out_elevations,
+                        crop_bufs, upsample_factor=50, normalization=None):
+    # Following process_frame_fast, though as we are not numba-optimizing
+    # evaluate_correlations there is less need to work with fixed sized buffers
+    # and as such this could be simplified substantially
+    buf_count = len(crop_bufs)
+    block_count = (len(peaks) - 1) // buf_count + 1
+    for block in range(block_count):
+        start = block * buf_count
+        stop = min((block + 1) * buf_count, len(peaks))
+        size = stop - start
+        crop_disks_from_frame(
+            peaks=peaks[start:stop], frame=frame, crop_size=crop_size,
+            out_crop_bufs=crop_bufs[:size]
+        )
+        log_scale_cropbufs_inplace(crop_bufs[:size])
+        crop_ffts = fft.fft2(crop_bufs[:size])
+
+        for idx, crop_fft in enumerate(crop_ffts[:size], start=start):
+            # NOTE the normalization kwarg requires skimage >= 0.19.0
+            shifts = phase_cross_correlation(crop_fft,
+                                             template_fft,
+                                             space='fourier',
+                                             upsample_factor=upsample_factor,
+                                             normalization=normalization,
+                                             return_error=False)
+            refineds = shifts + peaks[idx]
+            out_refineds[idx] = refineds
+            out_centers[idx] = np.round(refineds).astype(int)
+            # FIXME evaluate peak scores
+            # The corrmap exists inside the function phase_cross_correlation but we
+            # can't access it, would have to re-implement. At the same time could
+            # implement a single-step fft correlation using the phase_xcorr approach
+            out_heights[idx] = 1.
+            out_elevations[idx] = 1.

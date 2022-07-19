@@ -255,6 +255,7 @@ def test_run_refine_fullframe(lt_ctx):
     [
         udf.correlation.FastCorrelationUDF,
         udf.correlation.FullFrameCorrelationUDF,
+        udf.correlation.PhaseCorrelationUDF,
     ]
 )
 def test_run_refine_blocktests(lt_ctx, cls):
@@ -308,6 +309,9 @@ def test_run_refine_blocktests(lt_ctx, cls):
         (udf.correlation.FastCorrelationUDF, int, {}),
         (udf.correlation.FastCorrelationUDF, float, {}),
         (udf.correlation.FastCorrelationUDF, float, {'zero_shift': (2, 3)}),
+        (udf.correlation.PhaseCorrelationUDF, int, {}),
+        (udf.correlation.PhaseCorrelationUDF, float, {}),
+        (udf.correlation.PhaseCorrelationUDF, float, {'zero_shift': (2, 3)}),
         (udf.correlation.SparseCorrelationUDF, int, {'steps': 3}),
         (udf.correlation.SparseCorrelationUDF, float, {'steps': 3}),
         (udf.correlation.SparseCorrelationUDF, float, {'steps': 3, 'zero_shift': (2, 7)}),
