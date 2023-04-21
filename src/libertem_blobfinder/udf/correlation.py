@@ -140,7 +140,7 @@ class FastCorrelationUDF(CorrelationUDF):
         (centers, refineds, peak_values, peak_elevations) = self.output_buffers()
         ltbc.process_frame_fast(
             template=self.get_template(), crop_size=match_pattern.get_crop_size(),
-            frame=frame, peaks=self.get_peaks() + np.round(self.get_zero_shift()).astype(np.int),
+            frame=frame, peaks=self.get_peaks() + np.round(self.get_zero_shift()).astype(int),
             out_centers=centers, out_refineds=refineds,
             out_heights=peak_values, out_elevations=peak_elevations,
             crop_bufs=self.task_data.crop_bufs
@@ -207,7 +207,7 @@ class FullFrameCorrelationUDF(CorrelationUDF):
             template=self.get_template(),
             crop_size=match_pattern.get_crop_size(),
             frame=frame,
-            peaks=self.get_peaks() + np.round(self.get_zero_shift()).astype(np.int),
+            peaks=self.get_peaks() + np.round(self.get_zero_shift()).astype(int),
             out_centers=centers,
             out_refineds=refineds,
             out_heights=peak_values,
@@ -352,7 +352,7 @@ def run_fastcorrelation(
     buffers : Dict[libertem.common.buffers.BufferWrapper]
         See :meth:`CorrelationUDF.get_result_buffers` for details.
     """
-    peaks = peaks.astype(np.int)
+    peaks = peaks.astype(int)
     udf = FastCorrelationUDF(peaks=peaks, match_pattern=match_pattern, zero_shift=zero_shift)
     return ctx.run_udf(dataset=dataset, udf=udf, **kwargs)
 

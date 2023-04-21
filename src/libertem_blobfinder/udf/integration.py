@@ -38,7 +38,7 @@ class IntegrationUDF(UDF):
         >>> centers = IntegrationUDF.aux_data(
         ...     data=peaks,
         ...     kind='nav',
-        ...     dtype=np.int,
+        ...     dtype=int,
         ...     extra_shape=extra_shape
         ... )
 
