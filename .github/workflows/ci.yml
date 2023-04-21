@@ -18,6 +18,7 @@ jobs:
                 python-version: '${{ matrix.python_version }}'
             - name: install tox
               run: python3 -m pip install tox
+            - uses: actions/checkout@v3
             - name: run tox
               run: tox
             - name: submit code coverage
