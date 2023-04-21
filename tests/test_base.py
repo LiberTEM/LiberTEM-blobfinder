@@ -88,7 +88,7 @@ def test_crop_disks_from_frame():
         [frame[3, 3], frame[3, 4], frame[3, 5], 0],
         [frame[4, 3], frame[4, 4], frame[4, 5], 0],
         [frame[5, 3], frame[5, 4], frame[5, 5], 0],
-        [          0,           0,           0, 0],
+        [          0,           0,           0, 0],  # noqa: E201
     ])
 
 
