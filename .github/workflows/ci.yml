@@ -1,0 +1,24 @@
+name: CI
+
+on:
+    push:
+    pull_request:
+
+jobs:
+    tests:
+        strategy:
+            matrix:
+                python_version: ["3.7", "3.9", "3.10"]
+                os: [ubuntu-latest, windows-latest, macos-latest]
+        runs-on: ${{ matrix.os }}
+        steps:
+            - name: Choose Python version ${{ matrix.python_version }}
+              uses: actions/setup-python@v4
+              with:
+                python-version: '${{ matrix.python_version }}'
+            - name: install tox
+              run: python3 -m pip install tox
+            - name: run tox
+              run: tox
+            - name: submit code coverage
+              uses: codecov/codecov-action@v3
