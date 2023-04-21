@@ -36,8 +36,8 @@ def _mk_random(size, dtype='float32'):
     else:
         choice = [0, 1]
     data = np.random.choice(choice, size=size).astype(dtype)
-    coords2 = tuple((np.random.choice(range(c)) for c in size))
-    coords10 = tuple((np.random.choice(range(c)) for c in size))
+    coords2 = tuple(np.random.choice(range(c)) for c in size)
+    coords10 = tuple(np.random.choice(range(c)) for c in size)
     data[coords2] = np.random.choice(choice) * sum(size)
     data[coords10] = np.random.choice(choice) * 10 * sum(size)
     return data
