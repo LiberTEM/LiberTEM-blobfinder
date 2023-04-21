@@ -95,7 +95,7 @@ def test_crop_disks_from_frame():
 @pytest.mark.with_numba
 def test_com():
     data = np.random.random((7, 9))
-    ref = scipy.ndimage.measurements.center_of_mass(data)
+    ref = scipy.ndimage.center_of_mass(data)
     com = base.correlation.center_of_mass(data)
     print(ref, com, np.array(ref) - np.array(com))
     assert np.allclose(ref, com)

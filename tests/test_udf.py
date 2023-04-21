@@ -305,12 +305,12 @@ def test_run_refine_blocktests(lt_ctx, cls):
 @pytest.mark.parametrize(
     "cls,dtype,kwargs",
     [
-        (udf.correlation.FastCorrelationUDF, np.int, {}),
-        (udf.correlation.FastCorrelationUDF, np.float, {}),
-        (udf.correlation.FastCorrelationUDF, np.float, {'zero_shift': (2, 3)}),
-        (udf.correlation.SparseCorrelationUDF, np.int, {'steps': 3}),
-        (udf.correlation.SparseCorrelationUDF, np.float, {'steps': 3}),
-        (udf.correlation.SparseCorrelationUDF, np.float, {'steps': 3, 'zero_shift': (2, 7)}),
+        (udf.correlation.FastCorrelationUDF, int, {}),
+        (udf.correlation.FastCorrelationUDF, float, {}),
+        (udf.correlation.FastCorrelationUDF, float, {'zero_shift': (2, 3)}),
+        (udf.correlation.SparseCorrelationUDF, int, {'steps': 3}),
+        (udf.correlation.SparseCorrelationUDF, float, {'steps': 3}),
+        (udf.correlation.SparseCorrelationUDF, float, {'steps': 3, 'zero_shift': (2, 7)}),
     ]
 )
 def test_correlation_methods(lt_ctx, cls, dtype, kwargs):
@@ -376,8 +376,8 @@ def test_correlation_methods(lt_ctx, cls, dtype, kwargs):
 @pytest.mark.parametrize(
     "cls,dtype,kwargs",
     [
-        (udf.correlation.FullFrameCorrelationUDF, np.int, {}),
-        (udf.correlation.FullFrameCorrelationUDF, np.float, {}),
+        (udf.correlation.FullFrameCorrelationUDF, int, {}),
+        (udf.correlation.FullFrameCorrelationUDF, float, {}),
     ]
 )
 def test_correlation_method_fullframe(lt_ctx, cls, dtype, kwargs):
@@ -556,7 +556,7 @@ def test_integration(lt_ctx):
     zero = (62, 63)
 
     data = np.zeros((2, 2, 128, 128), dtype=np.float32)
-    peaks = np.zeros((2, 2, 49, 2), dtype=np.int)
+    peaks = np.zeros((2, 2, 49, 2), dtype=int)
 
     # Frame with a single peak
     ref_frame, _, _ = cbed_frame(
@@ -590,7 +590,7 @@ def test_integration(lt_ctx):
     ds = lt_ctx.load("memory", data=data, num_partitions=2)
 
     centers = libertem_blobfinder.udf.integration.IntegrationUDF.aux_data(
-        data=peaks, kind='nav', dtype=np.int, extra_shape=peaks.shape[-2:]
+        data=peaks, kind='nav', dtype=int, extra_shape=peaks.shape[-2:]
     )
 
     udf = libertem_blobfinder.udf.integration.IntegrationUDF(
