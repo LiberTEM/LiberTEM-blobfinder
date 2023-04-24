@@ -38,7 +38,7 @@ jobs:
               uses: actions/setup-python@v4
               with:
                 python-version: '3.10'
-            - run: sudo apt-get install pandoc
+            - run: sudo apt-get install -y pandoc
             - name: install tox
               run: python3 -m pip install tox
             - uses: actions/checkout@v3
@@ -54,7 +54,7 @@ jobs:
               uses: actions/setup-python@v4
               with:
                 python-version: '3.10'
-            - run: sudo apt-get install pandoc
+            - run: sudo apt-get install -y pandoc
             - name: install tox
               run: python3 -m pip install tox
             - uses: actions/checkout@v3
@@ -78,3 +78,5 @@ jobs:
           - name: Deploy to GitHub Pages
             id: deployment
             uses: actions/deploy-pages@v2
+          - run: |
+              curl -XPOST -u "sk1p:${{secrets.PAGES_TRIGGER_GH_TOKEN}}" -H "Accept: application/vnd.github.everest-preview+json" -H 'Content-Type: application/json' https://api.github.com/repos/LiberTEM/libertem.github.io/dispatches --data '{"event_type":"build_pages","client_payload":{"from":"LiberTEM-blobfinder"}}'
