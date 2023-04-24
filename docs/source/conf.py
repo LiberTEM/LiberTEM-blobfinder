@@ -66,6 +66,7 @@ extensions = [
     'nbsphinx_link',
     'IPython.sphinxext.ipython_console_highlighting',
     'sphinx_issues',
+    'sphinx_rtd_theme',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -85,7 +86,7 @@ master_doc = 'index'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -101,18 +102,17 @@ pygments_style = 'sphinx'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme = 'sphinx_rtd_theme'
 
-# FIXME: branding?
-# html_favicon = '../../corporatedesign/logo/favicon.ico'
+html_logo = '_static/logo.png'
+
+html_favicon = '../../corporatedesign/logo/favicon.ico'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
 html_theme_options = {
-    # FIXME: branding?
-    # 'logo': 'logo.png'
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -206,8 +206,8 @@ doctest_test_doctest_blocks = ''
 todo_include_todos = True
 
 intersphinx_mapping = {
-    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
-    'python': ('https://docs.python.org/3.7', None),
+    'numpy': ('https://numpy.org/doc/stable/', None),
+    'python': ('https://docs.python.org/3.10', None),
     'libertem': ('https://libertem.github.io/LiberTEM/', None),
 }
 
