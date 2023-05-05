@@ -21,6 +21,7 @@ jobs:
                 os: [ubuntu-latest, windows-latest, macos-latest]
         runs-on: ${{ matrix.os }}
         steps:
+            - uses: actions/checkout@v3
             - name: Choose Python version ${{ matrix.python_version }}
               uses: actions/setup-python@v4
               with:
@@ -28,7 +29,6 @@ jobs:
                 cache: 'pip'
             - name: install tox
               run: python3 -m pip install tox
-            - uses: actions/checkout@v3
             - name: run tox
               run: tox -e 'py${{ matrix.python_version }}'
             - name: submit code coverage
@@ -40,6 +40,7 @@ jobs:
                 envs: ["numba_coverage", "docs-check"]
         runs-on: ubuntu-latest
         steps:
+            - uses: actions/checkout@v3
             - name: 'Choose Python version 3.10'
               uses: actions/setup-python@v4
               with:
@@ -48,7 +49,6 @@ jobs:
             - run: sudo apt-get install -y pandoc
             - name: install tox
               run: python3 -m pip install tox
-            - uses: actions/checkout@v3
             - name: 'run tox for environment ${{ matrix.envs }}'
               run: tox -e '${{ matrix.envs }}'
             - name: submit code coverage
@@ -57,6 +57,7 @@ jobs:
     build-docs:
         runs-on: ubuntu-latest
         steps:
+            - uses: actions/checkout@v3
             - name: 'Choose Python version 3.10'
               uses: actions/setup-python@v4
               with:
@@ -65,7 +66,6 @@ jobs:
             - run: sudo apt-get install -y pandoc
             - name: install tox
               run: python3 -m pip install tox
-            - uses: actions/checkout@v3
             - name: 'run tox for docs-build-ci'
               run: tox -e 'docs-build-ci'
             - uses: actions/upload-pages-artifact@v1.0.8
@@ -97,12 +97,12 @@ jobs:
       env:
         LT_RELEASE_UPLOAD_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       steps:
+      - uses: actions/checkout@v3
       - name: Choose Python version 3.10
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
           cache: 'pip'
-      - uses: actions/checkout@v3
       - name: install release script deps
         run: pip install -r scripts/requirements.txt
       - name: run release script
