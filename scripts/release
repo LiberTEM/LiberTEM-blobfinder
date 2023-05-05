@@ -57,9 +57,33 @@ def get_github_actions_env():
     }
 
 
-def get_current_branch():
-    cmd = ["git", "rev-parse", "--abbrev-ref", "HEAD"]
+def get_all_branches():
+    """
+    Returns a dict from branch name to revision
+    """
+    cmd = ["git", "for-each-ref", "--format=%(objectname) %(refname:short)",
+           "refs/heads"]
+    lines = subprocess.check_output(cmd, text="utf-8").strip().split("\n")
+    return {
+        line.split()[1]: line.split()[0]
+        for line in lines
+    }
+
+
+def get_current_rev():
+    cmd = ["git", "rev-parse", "HEAD"]
     return subprocess.check_output(cmd, text="utf-8").strip()
+
+
+def get_current_branch():
+    # tag builds are in detached HEAD state for github actions, so we need to
+    # put some effort into finding the matching branch:
+    all_branches = get_all_branches()
+    branch_by_rev = {
+        rev: branch
+        for (branch, rev) in all_branches.items()
+    }
+    return branch_by_rev.get(get_current_rev(), "HEAD")
 
 
 env = get_github_actions_env()
