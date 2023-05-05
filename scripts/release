@@ -48,12 +48,18 @@ def get_azure_env():
 
 
 def get_github_actions_env():
+    branch = get_current_branch()
     return {
         'log_url': None,
         'commit': os.environ.get('GITHUB_SHA'),
-        'branch': os.environ.get('GITHUB_REF_NAME'),
+        'branch': branch,
         'is_pr': os.environ.get('GITHUB_EVENT_NAME') == 'pull_request',
     }
+
+
+def get_current_branch():
+    cmd = ["git", "rev-parse", "--abbrev-ref", "HEAD"]
+    return subprocess.check_output(cmd, text="utf-8").strip()
 
 
 env = get_github_actions_env()
@@ -542,6 +548,7 @@ def upload(ctx, dry_run, pypi_user, pypi_password, pypi_test_user, pypi_test_pas
 def status(ctx):
     version_file = get_version_fn()
     current_version = read_version(version_file)
+    print(f"env: {env}")
     print("current version: %s" % current_version)
     print("version tags for HEAD: %s" % [m['full'] for m in tag_matches(get_current_tags())])
     print("is release candidate? %s" % current_version_tag_is_rc())
