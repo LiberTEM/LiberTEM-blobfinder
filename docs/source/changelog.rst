@@ -18,6 +18,9 @@ Changelog
 0.5.0
 #####
 
+This version now supports Python up to version 3.11, and drops support for
+Python 3.6.
+
 Features
 --------
 
@@ -26,7 +29,9 @@ Features
   if peaks are shifted so much that integration at equal positions for all
   frames using :meth:`libertem_blobfinder.common.patterns.feature_vector`
   doesn't work anymore. (:pr:`27`)
-* The :code:`run_*` functions that wrap various UDFs now support the :code:`progress` argument of :meth:`libertem.api.Context.run_udf` that was introduced in LiberTEM 0.5.0.dev0. (:pr:`21`)
+* The :code:`run_*` functions that wrap various UDFs now support the
+  :code:`progress` argument of :meth:`libertem.api.Context.run_udf` that was
+  introduced in LiberTEM 0.5.0.dev0. (:pr:`21`)
 
 * Allow specifying per-frame origin shift (:pr:`23`)
     * Introduce the :code:`zero_shift` parameter to
