@@ -64,7 +64,8 @@ def get_all_branches():
     cmd = ["git", "for-each-ref", "--format=%(objectname) %(refname:short)",
            "refs/heads"]
     lines = subprocess.check_output(cmd, text="utf-8").strip().split("\n")
-    print(lines)
+    if not lines:
+        return {}
     return {
         line.split()[1]: line.split()[0]
         for line in lines
