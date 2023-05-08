@@ -549,7 +549,7 @@ def upload(ctx, dry_run, pypi_user, pypi_password, pypi_test_user, pypi_test_pas
     is_stable_branch = STABLE_VERSION_PAT.match(branch) is not None
     is_pull_request = env['is_pr']
 
-    if (is_master or is_stable_branch) and not is_pull_request:
+    if (is_master or is_stable_branch or is_release) and not is_pull_request:
         if dry_run:
             print("would upload the following files to github:")
             for f in github_files:
@@ -558,7 +558,7 @@ def upload(ctx, dry_run, pypi_user, pypi_password, pypi_test_user, pypi_test_pas
             upload_to_github(ctx.obj['verbose'], github_files, token=token, release=release)
     else:
         print(
-            "branch is not master or stable (or CI run is for PR)"
+            "branch is not master or stable and not a release tag (or CI run is for PR)"
             ", not uploading to github (files=%s)" % github_files
         )
 
