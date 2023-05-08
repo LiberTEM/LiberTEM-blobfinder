@@ -2,9 +2,9 @@ Changelog
 =========
 
 .. _continuous:
-.. _`v0-5-0`:
+.. _`v0-6-0`:
 
-0.5.0.dev0 (continuous)
+0.6.0.dev0 (continuous)
 #######################
 
 .. toctree::
@@ -13,6 +13,28 @@ Changelog
    changelog/*/*
 
 .. _latest:
+.. _`v0-5-0`:
+
+0.5.0
+#####
+
+Features
+--------
+
+* Integration of peak intensities at per-frame positions using
+  :class:`libertem_blobfinder.udf.integration.IntegrationUDF`. This can be used
+  if peaks are shifted so much that integration at equal positions for all
+  frames using :meth:`libertem_blobfinder.common.patterns.feature_vector`
+  doesn't work anymore. (:pr:`27`)
+* The :code:`run_*` functions that wrap various UDFs now support the :code:`progress` argument of :meth:`libertem.api.Context.run_udf` that was introduced in LiberTEM 0.5.0.dev0. (:pr:`21`)
+
+* Allow specifying per-frame origin shift (:pr:`23`)
+    * Introduce the :code:`zero_shift` parameter to
+      :class:`libertem_blobfinder.udf.correlation.CorrelationUDF`,
+      :meth:`libertem_blobfinder.udf.correlation.run_fastcorrelation` and
+      :meth:`libertem_blobfinder.udf.refinement.run_refine` to specify
+      a per-frame shift of the zero order position. This allows processing data
+      with strong descan error.
 
 .. _`v0-4-1`:
 
