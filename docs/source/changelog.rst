@@ -15,8 +15,11 @@ Changelog
 .. _latest:
 .. _`v0-5-0`:
 
-0.5.0
-#####
+0.5.0 / 2023-05-08
+##################
+
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.7907860.svg
+   :target: https://doi.org/10.5281/zenodo.7907860
 
 This version now supports Python up to version 3.11, and drops support for
 Python 3.6.
@@ -31,7 +34,7 @@ Features
   doesn't work anymore. (:pr:`27`)
 * The :code:`run_*` functions that wrap various UDFs now support the
   :code:`progress` argument of :meth:`libertem.api.Context.run_udf` that was
-  introduced in LiberTEM 0.5.0.dev0. (:pr:`21`)
+  introduced in LiberTEM 0.5.0.dev0. (:pr:`22`)
 
 * Allow specifying per-frame origin shift (:pr:`23`)
     * Introduce the :code:`zero_shift` parameter to
