@@ -28,6 +28,9 @@ STABLE_VERSION_PAT = re.compile(
     r'^v\d+\.(\d+|x)(\.(\d+|x))?$'
 )
 
+GH_REPO_NAME = "LiberTEM/LiberTEM-blobfinder"
+PYTHON_PKG_NAME = 'libertem_blobfinder'
+
 
 def get_travis_env():
     return {
@@ -106,7 +109,7 @@ def read_version(version_file):
 
 
 def get_version_fn():
-    return join(BASE_DIR, 'src', 'libertem_blobfinder', '__version__.py')
+    return join(BASE_DIR, 'src', PYTHON_PKG_NAME, '__version__.py')
 
 
 def do_git_commit(old_version, new_version, version_file):
@@ -286,7 +289,7 @@ def get_archive(tag):
     filename = "libertem-repo-archive-%s.tar.gz" % tag['full']
     with tempfile.TemporaryDirectory() as tempdir:
         full_fn = os.path.join(tempdir, filename)
-        url = "https://github.com/LiberTEM/LiberTEM-blobfinder/archive/%s.tar.gz" % tag['full']
+        url = f"https://github.com/{GH_REPO_NAME}/archive/{tag['full']}.tar.gz"
         stream_download(dest_fn=full_fn, url=url)
         yield full_fn
 
@@ -346,7 +349,7 @@ def upload_to_github(verbose, files, token, release):
         print("release message:", msg)
 
     g = Github(token)
-    repo = g.get_repo("LiberTEM/LiberTEM-blobfinder")
+    repo = g.get_repo(GH_REPO_NAME)
 
     release_data = {
         "message": msg,
@@ -596,7 +599,7 @@ def status(ctx):
               default=False)
 def bump(new_version, tag, commit, force):
     """
-    bump the version in libertem_blobfinder.__version__
+    bump the version in {PYTHON_PKG_NAME}.__version__
 
     NEW_VERSION should be pep440 compatible and conform to our version conventions
     """
@@ -634,7 +637,7 @@ def bump(new_version, tag, commit, force):
         do_git_tag(tag=version_tag)
     print(f"version bumped from {old_version} to {new_version}")
 
-    repo = "git@github.com:LiberTEM/LiberTEM-blobfinder.git"
+    repo = f"git@github.com:{GH_REPO_NAME}.git"
 
     if tag:
         print("now, push the new version: $ git push {} && git push {} {}".format(
