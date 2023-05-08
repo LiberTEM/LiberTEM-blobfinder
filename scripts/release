@@ -4,6 +4,7 @@ import re
 import sys
 import json
 import glob
+import shutil
 import tempfile
 import subprocess
 import contextlib
@@ -414,6 +415,31 @@ def upload_to_github(verbose, files, token, release):
         rel.upload_asset(path=path, content_type='application/octet-stream')
 
 
+def build_appimage(verbose):
+    APPIMAGE_DIR = join(BASE_DIR, 'packaging', 'appimage')
+
+    if verbose:
+        print("building AppImage in %s" % APPIMAGE_DIR)
+
+    # cleanup existing AppDir
+    APPDIR = join(APPIMAGE_DIR, 'AppDir')
+    if os.path.exists(APPDIR):
+        shutil.rmtree(APPDIR)
+
+    cmd = [
+        join(APPIMAGE_DIR, 'make_app_image.sh')
+    ]
+    output = subprocess.check_output(cmd, text="utf-8", cwd=APPIMAGE_DIR).strip()
+
+    if verbose:
+        print(output)
+
+    # FIXME: where does the zsync file come from?
+    appimage_files = glob.glob(join(APPIMAGE_DIR, 'LiberTEM*.AppImage*'))
+
+    return appimage_files
+
+
 def prepare_upload(verbose):
     """
     Prepare for upload. This includes:
@@ -490,6 +516,8 @@ def is_rc(ctx):
 @cli.command()
 @click.option('--dry-run/--no-dry-run', default=True,
               help="don't actually upload, only prepare files etc.")
+@click.option('--build-appimage/--no-build-appimage', default=False,
+              help="Build an AppImage")
 @click.option('--pypi-user', type=str, show_envvar=True)
 @click.option('--pypi-password', type=str, show_envvar=True)
 @click.option('--pypi-test-user', type=str, show_envvar=True)
@@ -505,8 +533,9 @@ def is_rc(ctx):
 @click.option('--zenodo-sandbox-parent', type=str, show_envvar=True,
               help='Zenodo sandbox parent deposition id')
 @click.pass_context
-def upload(ctx, dry_run, pypi_user, pypi_password, pypi_test_user, pypi_test_password, token,
-           zenodo_sandbox_token, zenodo_token, zenodo_parent, zenodo_sandbox_parent):
+def upload(ctx, dry_run, build_appimage, pypi_user, pypi_password,
+           pypi_test_user, pypi_test_password, token, zenodo_sandbox_token,
+           zenodo_token, zenodo_parent, zenodo_sandbox_parent):
     """
     prepare, build and upload to github, zenodo and pypi
     (if release candidate, to the test instance(s))
@@ -546,7 +575,12 @@ def upload(ctx, dry_run, pypi_user, pypi_password, pypi_test_user, pypi_test_pas
 
     release = get_release_kind()
 
+    if build_appimage:
+        appimage_files = build_appimage(verbose=ctx.obj['verbose'])
+    else:
+        appimage_files = []
     github_files = get_py_release_files()
+    github_files.extend(appimage_files)
 
     branch = env['branch']
 
@@ -587,6 +621,35 @@ def status(ctx):
         print("validating version tag...")
         validate_version_tag()
         print("done.")
+
+
+@cli.command()
+@click.pass_context
+def do_build_appimage(ctx):
+    appimage_files = build_appimage(verbose=ctx.obj['verbose'])
+    print("success, files=", appimage_files)
+
+
+@cli.command()
+def docker_tags():
+    """
+    Prints the tags that should be used for any docker images that are built,
+    separated by whitespace.
+    """
+    version = get_release_tag()
+    is_latest_stable = version and (version["full"] == get_latest_stable_tag())
+
+    tags = []
+
+    if version is not None:
+        tags.append(version["full"])
+
+    if is_latest_stable:
+        tags.append("latest")
+
+    tags.append("continuous")
+
+    print(" ".join(tags))
 
 
 @cli.command()
