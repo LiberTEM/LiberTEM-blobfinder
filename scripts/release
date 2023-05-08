@@ -551,7 +551,7 @@ def upload(ctx, dry_run, pypi_user, pypi_password, pypi_test_user, pypi_test_pas
     is_stable_branch = STABLE_VERSION_PAT.match(branch) is not None
     is_pull_request = env['is_pr']
 
-    if (is_master or is_stable_branch or is_release) and not is_pull_request:
+    if (is_master or is_stable_branch or is_release or is_rc) and not is_pull_request:
         if dry_run:
             print("would upload the following files to github:")
             for f in github_files:
@@ -560,7 +560,7 @@ def upload(ctx, dry_run, pypi_user, pypi_password, pypi_test_user, pypi_test_pas
             upload_to_github(ctx.obj['verbose'], github_files, token=token, release=release)
     else:
         print(
-            "branch is not master or stable and not a release tag (or CI run is for PR)"
+            "branch is not master or stable and not tagged (or CI run is for PR)"
             ", not uploading to github (files=%s)" % github_files
         )
 
@@ -616,6 +616,14 @@ def bump(new_version, tag, commit, force):
 
     version_file = get_version_fn()
     old_version = read_version(version_file)
+
+    if parse_version(old_version) > parse_version(new_version):
+        print(f'old version {old_version} is larger than new version {new_version}')
+        if not force:
+            raise click.ClickException("new version should be larger than old version")
+        else:
+            print("NOTE: bumping version by force")
+
     render_version(version_file, new_version)
     version_tag = f"v{new_version}"
 
