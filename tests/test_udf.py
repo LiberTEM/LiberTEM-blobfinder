@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 import matplotlib.pyplot as plt
+from sparseconverter import get_device_class
 
 import libertem_blobfinder.common.gridmatching as grm
 import libertem.masks as m
@@ -17,7 +18,7 @@ import libertem_blobfinder.udf.correlation
 import libertem_blobfinder.udf.integration
 import libertem_blobfinder.udf.utils  # noqa F401
 
-from utils import _mk_random
+from utils import _mk_random, set_device_class
 
 
 @pytest.mark.parametrize(
@@ -159,50 +160,61 @@ def test_run_refine_affinematch(lt_ctx):
             raise
 
 
-def test_run_refine_sparse(lt_ctx):
-    shape = np.array([128, 128])
-    zero = shape / 2 + np.random.uniform(-1, 1, size=2)
-    a = np.array([27.17, 0.]) + np.random.uniform(-1, 1, size=2)
-    b = np.array([0., 29.19]) + np.random.uniform(-1, 1, size=2)
-    indices = np.mgrid[-2:3, -2:3]
-    indices = np.concatenate(indices.T)
-
-    radius = 10
-
-    data, indices, peaks = cbed_frame(*shape, zero, a, b, indices, radius)
-
-    dataset = MemoryDataSet(data=data, tileshape=(1, *shape),
-                            num_partitions=1, sig_dims=2)
-
-    matcher = grm.Matcher()
-    match_pattern = common.patterns.RadialGradient(radius=radius)
-
-    print("zero: ", zero)
-    print("a: ", a)
-    print("b: ", b)
-
-    (res, real_indices) = udf.refinement.run_refine(
-        ctx=lt_ctx,
-        dataset=dataset,
-        zero=zero + np.random.uniform(-0.5, 0.5, size=2),
-        a=a + np.random.uniform(-0.5, 0.5, size=2),
-        b=b + np.random.uniform(-0.5, 0.5, size=2),
-        matcher=matcher,
-        match_pattern=match_pattern,
-        correlation='sparse',
-        steps=3
+@pytest.mark.parametrize(
+    'backend', (None, ) + tuple(
+        libertem_blobfinder.udf.refinement.SparseCorrelationUDF(0, None, None).get_backends()
     )
+)
+def test_run_refine_sparse(lt_ctx, backend):
+    with set_device_class(get_device_class(backend)):
+        shape = np.array([128, 128])
+        zero = shape / 2 + np.random.uniform(-1, 1, size=2)
+        a = np.array([27.17, 0.]) + np.random.uniform(-1, 1, size=2)
+        b = np.array([0., 29.19]) + np.random.uniform(-1, 1, size=2)
+        indices = np.mgrid[-2:3, -2:3]
+        indices = np.concatenate(indices.T)
 
-    print(peaks - grm.calc_coords(
-        res['zero'].data[0],
-        res['a'].data[0],
-        res['b'].data[0],
-        indices)
-    )
+        radius = 10
 
-    assert np.allclose(res['zero'].data[0], zero, atol=0.5)
-    assert np.allclose(res['a'].data[0], a, atol=0.2)
-    assert np.allclose(res['b'].data[0], b, atol=0.2)
+        data, indices, peaks = cbed_frame(*shape, zero, a, b, indices, radius)
+
+        dataset = MemoryDataSet(
+            data=data,
+            tileshape=(1, *shape),
+            num_partitions=1,
+            sig_dims=2,
+            array_backends=(backend, ) if backend is not None else None
+        )
+
+        matcher = grm.Matcher()
+        match_pattern = common.patterns.RadialGradient(radius=radius)
+
+        print("zero: ", zero)
+        print("a: ", a)
+        print("b: ", b)
+
+        (res, real_indices) = udf.refinement.run_refine(
+            ctx=lt_ctx,
+            dataset=dataset,
+            zero=zero + np.random.uniform(-0.5, 0.5, size=2),
+            a=a + np.random.uniform(-0.5, 0.5, size=2),
+            b=b + np.random.uniform(-0.5, 0.5, size=2),
+            matcher=matcher,
+            match_pattern=match_pattern,
+            correlation='sparse',
+            steps=3,
+        )
+
+        print(peaks - grm.calc_coords(
+            res['zero'].data[0],
+            res['a'].data[0],
+            res['b'].data[0],
+            indices)
+        )
+
+        assert np.allclose(res['zero'].data[0], zero, atol=0.5)
+        assert np.allclose(res['a'].data[0], a, atol=0.2)
+        assert np.allclose(res['b'].data[0], b, atol=0.2)
 
 
 def test_run_refine_fullframe(lt_ctx):

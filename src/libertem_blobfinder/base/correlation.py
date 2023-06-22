@@ -140,7 +140,7 @@ def refine_center(center, r, corrmap):
 
 
 @numba.njit
-def peak_elevation(center, corrmap, height, r_min=1.5, r_max=float('inf')):
+def peak_elevation(center, corrmap, height, r_min=1.5, r_max=np.inf):
     '''
     Return the slope of the tightest cone around :code:`center` with height :code:`height`
     that touches :code:`corrmap` between :code:`r_min` and :code:`r_max`.
