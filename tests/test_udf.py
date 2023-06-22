@@ -40,69 +40,80 @@ def test_smoke(lt_ctx, progress):
 
 
 @pytest.mark.parametrize(
+    'backend', (None, ) + tuple(
+        libertem_blobfinder.udf.refinement.FastCorrelationUDF(0, None, None).get_backends()
+    )
+)
+@pytest.mark.parametrize(
     "progress", [True, False]
 )
-def test_run_refine_fastmatch(lt_ctx, progress):
-    shape = np.array([128, 128])
-    zero = shape / 2 + np.random.uniform(-1, 1, size=2)
-    a = np.array([27.17, 0.]) + np.random.uniform(-1, 1, size=2)
-    b = np.array([0., 29.19]) + np.random.uniform(-1, 1, size=2)
-    indices = np.mgrid[-2:3, -2:3]
-    indices = np.concatenate(indices.T)
+def test_run_refine_fastmatch(lt_ctx, progress, backend):
+    with set_device_class(get_device_class(backend)):
+        shape = np.array([128, 128])
+        zero = shape / 2 + np.random.uniform(-1, 1, size=2)
+        a = np.array([27.17, 0.]) + np.random.uniform(-1, 1, size=2)
+        b = np.array([0., 29.19]) + np.random.uniform(-1, 1, size=2)
+        indices = np.mgrid[-2:3, -2:3]
+        indices = np.concatenate(indices.T)
 
-    drop = np.random.choice([True, False], size=len(indices), p=[0.9, 0.1])
-    indices = indices[drop]
+        drop = np.random.choice([True, False], size=len(indices), p=[0.9, 0.1])
+        indices = indices[drop]
 
-    radius = 10
+        radius = 10
 
-    data, indices, peaks = cbed_frame(*shape, zero, a, b, indices, radius)
+        data, indices, peaks = cbed_frame(*shape, zero, a, b, indices, radius)
 
-    dataset = MemoryDataSet(data=data, tileshape=(1, *shape),
-                            num_partitions=1, sig_dims=2)
-    matcher = grm.Matcher()
-
-    template = m.radial_gradient(
-        centerX=radius+1,
-        centerY=radius+1,
-        imageSizeX=2*radius+2,
-        imageSizeY=2*radius+2,
-        radius=radius
-    )
-
-    match_patterns = [
-        common.patterns.RadialGradient(radius=radius),
-        common.patterns.Circular(radius=radius),
-        common.patterns.BackgroundSubtraction(radius=radius),
-        common.patterns.RadialGradientBackgroundSubtraction(radius=radius),
-        common.patterns.UserTemplate(template=template)
-    ]
-
-    print("zero: ", zero)
-    print("a: ", a)
-    print("b: ", b)
-
-    for match_pattern in match_patterns:
-        print("refining using template %s" % type(match_pattern))
-        (res, real_indices) = udf.refinement.run_refine(
-            ctx=lt_ctx,
-            dataset=dataset,
-            zero=zero + np.random.uniform(-1, 1, size=2),
-            a=a + np.random.uniform(-1, 1, size=2),
-            b=b + np.random.uniform(-1, 1, size=2),
-            matcher=matcher,
-            match_pattern=match_pattern,
-            progress=progress
+        dataset = MemoryDataSet(
+            data=data,
+            tileshape=(1, *shape),
+            num_partitions=1,
+            sig_dims=2,
+            array_backends=(backend, ) if backend is not None else None
         )
-        print(peaks - grm.calc_coords(
-            res['zero'].data[0],
-            res['a'].data[0],
-            res['b'].data[0],
-            indices)
+        matcher = grm.Matcher()
+
+        template = m.radial_gradient(
+            centerX=radius+1,
+            centerY=radius+1,
+            imageSizeX=2*radius+2,
+            imageSizeY=2*radius+2,
+            radius=radius
         )
 
-        assert np.allclose(res['zero'].data[0], zero, atol=0.5)
-        assert np.allclose(res['a'].data[0], a, atol=0.2)
-        assert np.allclose(res['b'].data[0], b, atol=0.2)
+        match_patterns = [
+            common.patterns.RadialGradient(radius=radius),
+            common.patterns.Circular(radius=radius),
+            common.patterns.BackgroundSubtraction(radius=radius),
+            common.patterns.RadialGradientBackgroundSubtraction(radius=radius),
+            common.patterns.UserTemplate(template=template)
+        ]
+
+        print("zero: ", zero)
+        print("a: ", a)
+        print("b: ", b)
+
+        for match_pattern in match_patterns:
+            print("refining using template %s" % type(match_pattern))
+            (res, real_indices) = udf.refinement.run_refine(
+                ctx=lt_ctx,
+                dataset=dataset,
+                zero=zero + np.random.uniform(-1, 1, size=2),
+                a=a + np.random.uniform(-1, 1, size=2),
+                b=b + np.random.uniform(-1, 1, size=2),
+                matcher=matcher,
+                match_pattern=match_pattern,
+                progress=progress
+            )
+            print(peaks - grm.calc_coords(
+                res['zero'].data[0],
+                res['a'].data[0],
+                res['b'].data[0],
+                indices)
+            )
+
+            assert np.allclose(res['zero'].data[0], zero, atol=0.5)
+            assert np.allclose(res['a'].data[0], a, atol=0.2)
+            assert np.allclose(res['b'].data[0], b, atol=0.2)
 
 
 def test_run_refine_affinematch(lt_ctx):

@@ -129,12 +129,23 @@ class FastCorrelationUDF(CorrelationUDF):
         n_peaks = len(self.get_peaks())
         mask = self.get_pattern()
         crop_size = mask.get_crop_size()
-        template = mask.get_template(sig_shape=(2 * crop_size, 2 * crop_size))
+        template = self.xp.array(mask.get_template(sig_shape=(2 * crop_size, 2 * crop_size)))
         dtype = np.result_type(self.meta.input_dtype, np.float32)
-        crop_bufs = ltbc.allocate_crop_bufs(crop_size, n_peaks, dtype=dtype, limit=self.limit)
+        crop_bufs = ltbc.allocate_crop_bufs(
+            crop_size, n_peaks, dtype=dtype, limit=self.limit, xp=self.xp
+        )
+        if self.meta.array_backend in (
+                self.BACKEND_SPARSE_COO, self.BACKEND_SPARSE_GCXS, self.BACKEND_CUPY):
+            crop_function = ltbc.crop_disks_from_frame_slicing
+        elif self.meta.array_backend in (self.BACKEND_NUMPY, ):
+            crop_function = ltbc.crop_disks_from_frame
+        else:
+            raise RuntimeError(f"Unsupported array backend {self.meta.array_backend}")
+
         kwargs = {
             'crop_bufs': crop_bufs,
             'template': template,
+            'crop_function': crop_function,
         }
         return kwargs
 
@@ -152,7 +163,17 @@ class FastCorrelationUDF(CorrelationUDF):
             frame=frame, peaks=self.get_peaks() + np.round(self.get_zero_shift()).astype(int),
             out_centers=centers, out_refineds=refineds,
             out_heights=peak_values, out_elevations=peak_elevations,
-            crop_bufs=self.task_data.crop_bufs, upsample=self.params.get('upsample', False)
+            crop_bufs=self.task_data.crop_bufs,
+            upsample=self.params.get('upsample', False),
+            crop_function=self.task_data.crop_function,
+        )
+
+    def get_backends(self):
+        return (
+            self.BACKEND_NUMPY,
+            self.BACKEND_CUPY,
+            self.BACKEND_SPARSE_COO,
+            self.BACKEND_SPARSE_GCXS,
         )
 
 
