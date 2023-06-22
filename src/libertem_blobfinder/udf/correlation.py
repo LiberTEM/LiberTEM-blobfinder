@@ -1,6 +1,7 @@
 import functools
 
 import numpy as np
+import sparseconverter
 
 from libertem.udf import UDF
 import libertem.masks as masks
@@ -300,9 +301,23 @@ class SparseCorrelationUDF(CorrelationUDF):
             imageSizeX=self.meta.dataset_shape.sig[1],
             imageSizeY=self.meta.dataset_shape.sig[0]
         )
+        if self.meta.array_backend in sparseconverter.CPU_BACKENDS:
+            backend = 'numpy'
+        elif self.meta.array_backend in sparseconverter.CUDA_BACKENDS:
+            backend = 'cupy'
+        else:
+            raise ValueError("Unknown device class")
+        if self.meta.array_backend == self.BACKEND_SPARSE_COO:
+            use_sparse = 'sparse.pydata'
+        elif self.meta.array_backend == self.BACKEND_SPARSE_GCXS:
+            use_sparse = 'sparse.pydata.GCXS'
+        elif self.meta.array_backend in (self.BACKEND_CUPY, self.BACKEND_NUMPY):
+            use_sparse = 'scipy.sparse.csc'
+        else:
+            raise RuntimeError(f'Unsupported array backend {self.meta.array_backend}')
         # CSC matrices in combination with transposed data are fastest
         container = MaskContainer(mask_factories=stack, dtype=np.float32,
-            use_sparse='scipy.sparse.csc')
+            use_sparse=use_sparse, backend=backend)
 
         kwargs = {
             'mask_container': container,
@@ -313,14 +328,10 @@ class SparseCorrelationUDF(CorrelationUDF):
     def process_tile(self, tile):
         tile_slice = self.meta.slice
         c = self.task_data.mask_container
-        tile_t = np.zeros(
-            (np.prod(tile.shape[1:]), tile.shape[0]),
-            dtype=tile.dtype
-        )
-        ltbc.log_scale(tile.reshape((tile.shape[0], -1)).T, out=tile_t)
+        tile_t = ltbc.log_scale(tile.reshape((tile.shape[0], -1)).T, out=None)
 
         sl = c.get(key=tile_slice, transpose=False)
-        self.results.corr[:] += sl.dot(tile_t).T
+        self.results.corr[:] += self.forbuf(sl.dot(tile_t).T, self.results.corr)
 
     def postprocess(self):
         """
@@ -343,6 +354,14 @@ class SparseCorrelationUDF(CorrelationUDF):
                 out_centers=centers[f], out_refineds=refineds[f],
                 out_heights=peak_values[f], out_elevations=peak_elevations[f]
             )
+
+    def get_backends(self):
+        return (
+            self.BACKEND_NUMPY,
+            self.BACKEND_CUPY,
+            self.BACKEND_SPARSE_COO,
+            self.BACKEND_SPARSE_GCXS
+        )
 
 
 def run_fastcorrelation(
