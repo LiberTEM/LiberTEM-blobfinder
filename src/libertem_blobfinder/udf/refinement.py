@@ -4,8 +4,9 @@ from libertem.utils import frame_peaks
 import libertem.analysis.gridmatching as grm
 
 from libertem_blobfinder.common.patterns import MatchPattern
-from libertem_blobfinder.udf.correlation import FastCorrelationUDF,\
-    SparseCorrelationUDF, FullFrameCorrelationUDF
+from libertem_blobfinder.udf.correlation import (
+    FastCorrelationUDF, SparseCorrelationUDF, FullFrameCorrelationUDF
+)
 
 
 class RefinementMixin():
