@@ -50,10 +50,3 @@ def _fullgrid(zero, a, b, index, skip_zero=False):
         select = (np.not_equal(indices[:, 0], 0) + np.not_equal(indices[:, 1], 0))
         indices = indices[select]
     return calc_coords(zero, a, b, indices)
-
-
-def assert_msg(msg, msg_type, status='ok'):
-    print(msg, msg_type, status)
-    assert msg['status'] == status
-    assert msg['messageType'] == msg_type,\
-        "expected: {}, is: {}".format(msg_type, msg['messageType'])
