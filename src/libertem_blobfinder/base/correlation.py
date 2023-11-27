@@ -2,8 +2,8 @@ import os
 
 import numpy as np
 import numba
-from skimage.registration import phase_cross_correlation
 
+from libertem_blobfinder.base.phase_xcorr import phase_cross_correlation
 
 # FIXME There's work on flexible FFT backends in scipy
 # https://github.com/scipy/scipy/wiki/GSoC-2019-project-ideas#revamp-scipyfftpack
@@ -463,19 +463,23 @@ def process_frame_phase(template_fft, crop_size, frame, peaks,
         crop_ffts = fft.fft2(crop_bufs[:size])
 
         for idx, crop_fft in enumerate(crop_ffts[:size], start=start):
-            # NOTE the normalization kwarg requires skimage >= 0.19.0
-            shifts = phase_cross_correlation(crop_fft,
-                                             template_fft,
-                                             space='fourier',
-                                             upsample_factor=upsample_factor,
-                                             normalization=normalization,
-                                             return_error=False)
-            refineds = shifts + peaks[idx]
-            out_refineds[idx] = refineds
-            out_centers[idx] = np.round(refineds).astype(int)
+            shifts, corr, height = phase_cross_correlation(
+                crop_fft,
+                template_fft,
+                upsample_factor=upsample_factor,
+                space='fourier',
+                normalization=normalization,
+                fft=fft,
+            )
+                
+            refined = shifts + peaks[idx]
+            out_refineds[idx] = refined
+            out_centers[idx] = np.round(refined).astype(int)
             # FIXME evaluate peak scores
             # The corrmap exists inside the function phase_cross_correlation but we
             # can't access it, would have to re-implement. At the same time could
             # implement a single-step fft correlation using the phase_xcorr approach
-            out_heights[idx] = 1.
-            out_elevations[idx] = 1.
+            out_heights[idx] = height
+            out_elevations[idx] = np.float32(
+                peak_elevation(refined, corr.real, height.real)
+            )
