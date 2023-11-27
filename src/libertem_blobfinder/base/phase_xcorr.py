@@ -222,7 +222,7 @@ def phase_cross_correlation(reference_image, moving_image, *,
 
     if fft is None:
         from scipy import fft
-    
+
     # Unpack fft functions
     fftn = fft.fftn
     ifftn = fft.ifftn

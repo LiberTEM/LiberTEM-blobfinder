@@ -471,7 +471,7 @@ def process_frame_phase(template_fft, crop_size, frame, peaks,
                 normalization=normalization,
                 fft=fft,
             )
-                
+
             refined = shifts + peaks[idx]
             out_refineds[idx] = refined
             out_centers[idx] = np.round(refined).astype(int)
