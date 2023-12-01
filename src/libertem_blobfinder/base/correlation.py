@@ -1,4 +1,6 @@
 import os
+from typing import Union
+from typing_extensions import Literal
 
 import numpy as np
 import numba
@@ -55,7 +57,7 @@ def _upsampled_dft(corr_shape, corrspecs, upsampled_region_size,
     return upsampled
 
 
-def refine_center_upsampling(corr_shape, center, corrspecs, upsample_factor=20):
+def refine_center_upsampling(corr_shape, center, corrspecs, upsample_factor: int):
     centrepoint = np.asarray(corr_shape) / 2
 
     shift = np.asarray(center) - centrepoint
@@ -211,7 +213,7 @@ def evaluate_correlations(corrs, peaks, crop_size,
         out_elevations[i] = np.float32(peak_elevation(refined, corr, height))
 
 
-def evaluate_upsampling(corrspecs, corrs, peaks, crop_size, sig_shape,
+def evaluate_upsampling(corrspecs, corrs, peaks, crop_size, sig_shape, upsample_factor,
         out_centers, out_refineds):
     # A corrspec stack means we are processing corrspecs of crops of the frame
     # and corrs are the irfft2 of each corrspec. If False, corrspecs is the rfft2
@@ -225,7 +227,9 @@ def evaluate_upsampling(corrspecs, corrs, peaks, crop_size, sig_shape,
         center = out_centers[i]
         if corrspec_stack:
             center = _unshift(center, peaks[i], crop_size)
-        out_refineds[i] = refine_center_upsampling(corr_shape, center, corrspec)
+        out_refineds[i] = refine_center_upsampling(
+            corr_shape, center, corrspec, upsample_factor=upsample_factor
+        )
         if corrspec_stack:
             out_refineds[i] = _shift(out_refineds[i], peaks[i], crop_size)
 
@@ -328,7 +332,7 @@ def allocate_crop_bufs(crop_size, n_peaks, dtype, limit=2**19):
 
 def process_frame_fast(template, crop_size, frame, peaks,
         out_centers, out_refineds, out_heights, out_elevations,
-        crop_bufs, upsample=False):
+        crop_bufs, upsample: Union[Literal[False], int] = False):
     '''
     Find the parameters of peaks in a diffraction pattern by correlation with a template
 
@@ -416,17 +420,17 @@ def process_frame_fast(template, crop_size, frame, peaks,
             out_centers=out_centers[start:stop], out_refineds=out_refineds[start:stop],
             out_heights=out_heights[start:stop], out_elevations=out_elevations[start:stop]
         )
-        if upsample:
+        if int(upsample) > 1:
             evaluate_upsampling(
                 corrspecs=corrspecs, corrs=crop_bufs[:size], peaks=peaks[start:stop],
-                crop_size=crop_size, sig_shape=frame.shape,
+                crop_size=crop_size, sig_shape=frame.shape, upsample_factor=int(upsample),
                 out_centers=out_centers[start:stop], out_refineds=out_refineds[start:stop],
             )
 
 
 def process_frame_full(template, crop_size, frame, peaks,
         out_centers=None, out_refineds=None, out_heights=None, out_elevations=None,
-        frame_buf=None, buf_count=None, upsample=False):
+        frame_buf=None, buf_count=None, upsample: Union[Literal[False], int] = False):
     '''
     Find the parameters of peaks in a diffraction pattern by correlation with a template
 
@@ -524,9 +528,9 @@ def process_frame_full(template, crop_size, frame, peaks,
             out_centers=out_centers[start:stop], out_refineds=out_refineds[start:stop],
             out_heights=out_heights[start:stop], out_elevations=out_elevations[start:stop]
         )
-        if upsample:
+        if int(upsample) > 1:
             evaluate_upsampling(
                 corrspecs=corrspec, corrs=crop_bufs[:size], peaks=peaks[start:stop],
-                crop_size=crop_size, sig_shape=frame.shape,
+                crop_size=crop_size, sig_shape=frame.shape, upsample_factor=int(upsample),
                 out_centers=out_centers[start:stop], out_refineds=out_refineds[start:stop],
             )
