@@ -28,6 +28,60 @@ else:
     from numba.np.unsafe.ndarray import to_fixed_tuple
 
 
+def _upsampled_dft(corr_shape, corrspecs, upsampled_region_size,
+                   upsample_factor, axis_offsets) -> np.ndarray:
+
+    upsampled_region_size = int(upsampled_region_size)
+
+    dim_properties = list(
+        zip(
+            corr_shape,
+            (upsampled_region_size, upsampled_region_size),
+            axis_offsets,
+            (fft.fftfreq, fft.rfftfreq)
+        )
+    )
+
+    upsampled = corrspecs
+    for (ax_size, ups_size, ax_offset, freq) in dim_properties[::-1]:
+        kernel = ((np.arange(ups_size) - ax_offset)[:, None]
+                  * freq(ax_size, upsample_factor))
+        kernel = np.exp(-1j * 2 * np.pi * kernel)
+        # use kernel with same precision as the data
+        kernel = kernel.astype(corrspecs.dtype, copy=False)
+        # Equivalent to:
+        #   data[i, j, k] = kernel[i, :] @ data[j, k].T
+        upsampled = np.tensordot(kernel, upsampled, axes=(1, -1))
+    return upsampled
+
+
+def refine_center_upsampling(corr_shape, center, corrspecs, upsample_factor=20):
+    centrepoint = np.asarray(corr_shape) / 2
+
+    shift = np.asarray(center) - centrepoint
+    shift_us = np.round(shift * upsample_factor)
+
+    upsampled_region_size = np.ceil(upsample_factor * 1.5)
+    dftshift = np.fix(upsampled_region_size / 2.0)
+    sample_region_offset = dftshift - shift_us
+    cross_correlation_us = _upsampled_dft(
+        corr_shape=corr_shape,
+        corrspecs=corrspecs.conj(),
+        upsampled_region_size=upsampled_region_size,
+        upsample_factor=upsample_factor,
+        axis_offsets=sample_region_offset,
+    ).conj()
+    maxima = np.unravel_index(
+        np.abs(cross_correlation_us).argmax(),
+        cross_correlation_us.shape,
+    )
+    maxima = np.stack(maxima).astype(np.float32, copy=False)
+    maxima -= dftshift
+    shift += maxima / upsample_factor
+    shift += centrepoint
+    return shift.astype(np.float32)
+
+
 @numba.njit
 def center_of_mass(arr):
     r_y = r_x = np.float32(0)
@@ -126,7 +180,7 @@ def do_correlations(template, crop_parts):
     spec_parts = fft.rfft2(crop_parts)
     corrspecs = template * spec_parts
     corrs = fft.fftshift(fft.irfft2(corrspecs), axes=(-1, -2))
-    return corrs
+    return corrs, corrspecs
 
 
 @numba.njit
@@ -153,6 +207,28 @@ def evaluate_correlations(corrs, peaks, crop_size,
         height = np.float32(corr[center])
         out_centers[i] = _shift(np.array(center), peaks[i], crop_size)
         out_refineds[i] = _shift(refined, peaks[i], crop_size)
+        out_heights[i] = height
+        out_elevations[i] = np.float32(peak_elevation(refined, corr, height))
+
+
+def evaluate_correlations_us(corrspecs, corrs, peaks, crop_size, sig_shape,
+        out_centers, out_refineds, out_heights, out_elevations):
+    full_corrspecs = corrspecs.ndim == 2
+    corr_shape = sig_shape if full_corrspecs else corrs.shape[1:]
+    for i in range(len(corrs)):
+        corr = corrs[i]
+        corrspec = corrspecs if full_corrspecs else corrspecs[i]
+        center = unravel_index(np.argmax(corr), corr.shape)
+        height = np.float32(corr[center])
+        out_centers[i] = _shift(np.array(center), peaks[i], crop_size)
+        if full_corrspecs:
+            center = out_centers[i]
+        refined = refine_center_upsampling(corr_shape, center, corrspec)
+        if not full_corrspecs:
+            out_refineds[i] = _shift(refined, peaks[i], crop_size)
+        else:
+            out_refineds[i] = refined
+            refined = _unshift(refined, peaks[i], crop_size)
         out_heights[i] = height
         out_elevations[i] = np.float32(peak_elevation(refined, corr, height))
 
@@ -193,6 +269,11 @@ def crop_disks_from_frame(peaks, frame, crop_size, out_crop_bufs):
 @numba.njit
 def _shift(relative_center, anchor, crop_size):
     return relative_center + anchor - np.array((crop_size, crop_size))
+
+
+@numba.njit
+def _unshift(center, anchor, crop_size):
+    return center - anchor + np.array((crop_size, crop_size))
 
 
 def get_buf_count(crop_size, n_peaks, dtype, limit=2**19):
@@ -250,7 +331,7 @@ def allocate_crop_bufs(crop_size, n_peaks, dtype, limit=2**19):
 
 def process_frame_fast(template, crop_size, frame, peaks,
         out_centers, out_refineds, out_heights, out_elevations,
-        crop_bufs):
+        crop_bufs, upsample=False):
     '''
     Find the parameters of peaks in a diffraction pattern by correlation with a template
 
@@ -332,17 +413,21 @@ def process_frame_fast(template, crop_size, frame, peaks,
             out_crop_bufs=crop_bufs[:size]
         )
         log_scale_cropbufs_inplace(crop_bufs[:size])
-        corrs = do_correlations(template, crop_bufs[:size])
-        evaluate_correlations(
+        corrs, corrspecs = do_correlations(template, crop_bufs[:size])
+        common_args = dict(
             corrs=corrs, peaks=peaks[start:stop], crop_size=crop_size,
             out_centers=out_centers[start:stop], out_refineds=out_refineds[start:stop],
             out_heights=out_heights[start:stop], out_elevations=out_elevations[start:stop]
         )
+        if upsample:
+            evaluate_correlations_us(**common_args, corrspecs=corrspecs, sig_shape=frame.shape)
+        else:
+            evaluate_correlations(**common_args)
 
 
 def process_frame_full(template, crop_size, frame, peaks,
         out_centers=None, out_refineds=None, out_heights=None, out_elevations=None,
-        frame_buf=None, buf_count=None):
+        frame_buf=None, buf_count=None, upsample=False):
     '''
     Find the parameters of peaks in a diffraction pattern by correlation with a template
 
@@ -435,8 +520,12 @@ def process_frame_full(template, crop_size, frame, peaks,
             peaks=peaks[start:stop], frame=corr, crop_size=crop_size,
             out_crop_bufs=crop_bufs[:size]
         )
-        evaluate_correlations(
+        common_args = dict(
             corrs=crop_bufs[:size], peaks=peaks[start:stop], crop_size=crop_size,
             out_centers=out_centers[start:stop], out_refineds=out_refineds[start:stop],
             out_heights=out_heights[start:stop], out_elevations=out_elevations[start:stop]
         )
+        if upsample:
+            evaluate_correlations_us(**common_args, corrspecs=corrspec, sig_shape=frame.shape)
+        else:
+            evaluate_correlations(**common_args)

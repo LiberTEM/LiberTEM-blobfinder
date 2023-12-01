@@ -67,7 +67,7 @@ def get_peaks(sum_result, match_pattern: MatchPattern, num_peaks):
     return peaks
 
 
-def process_frames_fast(pattern: MatchPattern, frames, peaks):
+def process_frames_fast(pattern: MatchPattern, frames, peaks, upsample=False):
     '''
     Find the parameters of peaks in a diffraction pattern by correlation with a match pattern.
 
@@ -126,12 +126,12 @@ def process_frames_fast(pattern: MatchPattern, frames, peaks):
             frame=f, peaks=peaks.astype(np.int32),
             out_centers=centers[i], out_refineds=refineds[i],
             out_heights=heights[i], out_elevations=elevations[i],
-            crop_bufs=crop_bufs
+            crop_bufs=crop_bufs, upsample=upsample,
         )
     return (centers, refineds, heights, elevations)
 
 
-def process_frames_full(pattern: MatchPattern, frames, peaks):
+def process_frames_full(pattern: MatchPattern, frames, peaks, upsample=False):
     '''
     Find the parameters of peaks in a diffraction pattern by correlation with a match pattern.
 
@@ -193,6 +193,6 @@ def process_frames_full(pattern: MatchPattern, frames, peaks):
             frame=f, peaks=peaks.astype(np.int32),
             out_centers=centers[i], out_refineds=refineds[i],
             out_heights=heights[i], out_elevations=elevations[i],
-            frame_buf=frame_buf, buf_count=buf_count
+            frame_buf=frame_buf, buf_count=buf_count, upsample=upsample,
         )
     return (centers, refineds, heights, elevations)
