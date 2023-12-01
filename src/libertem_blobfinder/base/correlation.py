@@ -211,26 +211,23 @@ def evaluate_correlations(corrs, peaks, crop_size,
         out_elevations[i] = np.float32(peak_elevation(refined, corr, height))
 
 
-def evaluate_correlations_us(corrspecs, corrs, peaks, crop_size, sig_shape,
-        out_centers, out_refineds, out_heights, out_elevations):
-    full_corrspecs = corrspecs.ndim == 2
-    corr_shape = sig_shape if full_corrspecs else corrs.shape[1:]
+def evaluate_upsampling(corrspecs, corrs, peaks, crop_size, sig_shape,
+        out_centers, out_refineds):
+    # A corrspec stack means we are processing corrspecs of crops of the frame
+    # and corrs are the irfft2 of each corrspec. If False, corrspecs is the rfft2
+    # of the whole frame and corrs are the crops from the irfft2 of corrspecs
+    # Alternative to these gynmastics is specialise evaluate_upsampling into
+    # evaluate_upsampling_fast and evaluate_upsampling_full
+    corrspec_stack = corrspecs.ndim == 3
+    corr_shape = corrs.shape[1:] if corrspec_stack else sig_shape
     for i in range(len(corrs)):
-        corr = corrs[i]
-        corrspec = corrspecs if full_corrspecs else corrspecs[i]
-        center = unravel_index(np.argmax(corr), corr.shape)
-        height = np.float32(corr[center])
-        out_centers[i] = _shift(np.array(center), peaks[i], crop_size)
-        if full_corrspecs:
-            center = out_centers[i]
-        refined = refine_center_upsampling(corr_shape, center, corrspec)
-        if not full_corrspecs:
-            out_refineds[i] = _shift(refined, peaks[i], crop_size)
-        else:
-            out_refineds[i] = refined
-            refined = _unshift(refined, peaks[i], crop_size)
-        out_heights[i] = height
-        out_elevations[i] = np.float32(peak_elevation(refined, corr, height))
+        corrspec = corrspecs[i] if corrspec_stack else corrspecs
+        center = out_centers[i]
+        if corrspec_stack:
+            center = _unshift(center, peaks[i], crop_size)
+        out_refineds[i] = refine_center_upsampling(corr_shape, center, corrspec)
+        if corrspec_stack:
+            out_refineds[i] = _shift(out_refineds[i], peaks[i], crop_size)
 
 
 def log_scale(data, out):
@@ -414,15 +411,17 @@ def process_frame_fast(template, crop_size, frame, peaks,
         )
         log_scale_cropbufs_inplace(crop_bufs[:size])
         corrs, corrspecs = do_correlations(template, crop_bufs[:size])
-        common_args = dict(
+        evaluate_correlations(
             corrs=corrs, peaks=peaks[start:stop], crop_size=crop_size,
             out_centers=out_centers[start:stop], out_refineds=out_refineds[start:stop],
             out_heights=out_heights[start:stop], out_elevations=out_elevations[start:stop]
         )
         if upsample:
-            evaluate_correlations_us(**common_args, corrspecs=corrspecs, sig_shape=frame.shape)
-        else:
-            evaluate_correlations(**common_args)
+            evaluate_upsampling(
+                corrspecs=corrspecs, corrs=crop_bufs[:size], peaks=peaks[start:stop],
+                crop_size=crop_size, sig_shape=frame.shape,
+                out_centers=out_centers[start:stop], out_refineds=out_refineds[start:stop],
+            )
 
 
 def process_frame_full(template, crop_size, frame, peaks,
@@ -520,12 +519,14 @@ def process_frame_full(template, crop_size, frame, peaks,
             peaks=peaks[start:stop], frame=corr, crop_size=crop_size,
             out_crop_bufs=crop_bufs[:size]
         )
-        common_args = dict(
+        evaluate_correlations(
             corrs=crop_bufs[:size], peaks=peaks[start:stop], crop_size=crop_size,
             out_centers=out_centers[start:stop], out_refineds=out_refineds[start:stop],
             out_heights=out_heights[start:stop], out_elevations=out_elevations[start:stop]
         )
         if upsample:
-            evaluate_correlations_us(**common_args, corrspecs=corrspec, sig_shape=frame.shape)
-        else:
-            evaluate_correlations(**common_args)
+            evaluate_upsampling(
+                corrspecs=corrspec, corrs=crop_bufs[:size], peaks=peaks[start:stop],
+                crop_size=crop_size, sig_shape=frame.shape,
+                out_centers=out_centers[start:stop], out_refineds=out_refineds[start:stop],
+            )
