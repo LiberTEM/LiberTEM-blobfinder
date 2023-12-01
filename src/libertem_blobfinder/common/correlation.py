@@ -1,3 +1,5 @@
+from typing import Union
+
 import numpy as np
 from skimage.feature import peak_local_max
 
@@ -67,7 +69,10 @@ def get_peaks(sum_result, match_pattern: MatchPattern, num_peaks):
     return peaks
 
 
-def process_frames_fast(pattern: MatchPattern, frames, peaks, upsample=False):
+def process_frames_fast(
+    pattern: MatchPattern, frames, peaks,
+    upsample: Union[bool, int] = False
+):
     '''
     Find the parameters of peaks in a diffraction pattern by correlation with a match pattern.
 
@@ -110,6 +115,9 @@ def process_frames_fast(pattern: MatchPattern, frames, peaks, upsample=False):
     ... )
     >>> assert np.allclose(refineds[0], peaks, atol=0.1)
     '''
+    if upsample is True:
+        upsample = 20
+
     crop_size = pattern.get_crop_size()
     template = pattern.get_template(sig_shape=(2 * crop_size, 2 * crop_size))
 
@@ -131,7 +139,10 @@ def process_frames_fast(pattern: MatchPattern, frames, peaks, upsample=False):
     return (centers, refineds, heights, elevations)
 
 
-def process_frames_full(pattern: MatchPattern, frames, peaks, upsample=False):
+def process_frames_full(
+    pattern: MatchPattern, frames, peaks,
+    upsample: Union[bool, int] = False
+):
     '''
     Find the parameters of peaks in a diffraction pattern by correlation with a match pattern.
 
@@ -175,6 +186,9 @@ def process_frames_full(pattern: MatchPattern, frames, peaks, upsample=False):
     ... )
     >>> assert np.allclose(refineds[0], peaks, atol=0.1)
     '''
+    if upsample is True:
+        upsample = 20
+
     crop_size = pattern.get_crop_size()
     template = pattern.get_template(sig_shape=frames[0].shape)
 
