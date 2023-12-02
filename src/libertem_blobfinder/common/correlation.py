@@ -91,6 +91,12 @@ def process_frames_fast(
         Frame data. Currently, only Real values are supported.
     peaks : np.ndarray
         List of peaks of shape (n_peaks, 2)
+    upsample: Union[bool, int]
+        Use DFT upsampling for the refinement step, by default False. Supplying
+        True will choose a reasonable default upsampling factor, while any
+        positive integer > 1 will upsample the correlation peak by this factor.
+        DFT upsampling can provide more accurate center values, especially when
+        peak shifts are small, but does require more computation time.
 
     Returns
     -------
@@ -162,6 +168,12 @@ def process_frames_full(
         Frame data. Currently, only real values are supported.
     peaks : np.ndarray
         List of peaks of shape (n_peaks, 2)
+    upsample: Union[bool, int]
+        Use DFT upsampling for the refinement step, by default False. Supplying
+        True will choose a reasonable default upsampling factor, while any
+        positive integer > 1 will upsample the correlation peak by this factor.
+        DFT upsampling can provide more accurate center values, especially when
+        peak shifts are small, but does require more computation time.
 
     Returns
     -------

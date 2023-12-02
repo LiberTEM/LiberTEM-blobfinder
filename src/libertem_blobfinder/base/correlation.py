@@ -369,6 +369,9 @@ def process_frame_fast(template, crop_size, frame, peaks,
         Aligned buffer for pyfftw. Shape (n, 2 * crop_size, 2 * crop_size) and float dtype.
         n doesn't have to match the number of peaks. Instead, it should be chosen for good L3 cache
         efficiency. :meth:`allocate_crop_bufs` can be used to allocate this buffer.
+    upsample : Union[Literal[False], int]
+        Whether to use upsampling DFT for refinement. False to deactivate (default) or a positive
+        integer >1 to upsample by this factor when refining the correlation peak positions.
 
     Returns
     -------
@@ -473,6 +476,9 @@ def process_frame_full(template, crop_size, frame, peaks,
     buf_count : int
         Number of peaks to process per outer loop iteration. This allows optimization of L3 cache
         efficiency.
+    upsample : Union[Literal[False], int]
+        Whether to use upsampling DFT for refinement. False to deactivate (default) or a positive
+        integer >1 to upsample by this factor when refining the correlation peak positions.
 
 
     Returns
