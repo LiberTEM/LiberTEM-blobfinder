@@ -1,8 +1,9 @@
 import os
-from typing import Union
+from typing import Union, Tuple
 from typing_extensions import Literal
 
 import numpy as np
+import numpy.typing as npt
 import numba
 
 
@@ -30,34 +31,53 @@ else:
     from numba.np.unsafe.ndarray import to_fixed_tuple
 
 
-def _upsampled_dft(corr_shape, corrspecs, upsampled_region_size,
-                   upsample_factor, axis_offsets) -> np.ndarray:
+def _upsampled_dft(
+    corrspecs: npt.NDArray,
+    frequencies: Tuple[np.ndarray, np.ndarray],
+    upsampled_region_size: int,
+    axis_offsets: Tuple[float, float],
+) -> np.ndarray:
 
-    upsampled_region_size = int(upsampled_region_size)
-
-    dim_properties = list(
-        zip(
-            corr_shape,
-            (upsampled_region_size, upsampled_region_size),
-            axis_offsets,
-            (fft.fftfreq, fft.rfftfreq)
-        )
-    )
-
+    im2pi = -1j * 2 * np.pi
     upsampled = corrspecs
-    for (ax_size, ups_size, ax_offset, freq) in dim_properties[::-1]:
-        kernel = ((np.arange(ups_size) - ax_offset)[:, None]
-                  * freq(ax_size, upsample_factor))
-        kernel = np.exp(-1j * 2 * np.pi * kernel)
-        # use kernel with same precision as the data
-        kernel = kernel.astype(corrspecs.dtype, copy=False)
+    for (ax_freq, ax_offset) in zip(frequencies[::-1], axis_offsets[::-1]):
+        kernel = np.linspace(
+            -ax_offset,
+            (-ax_offset + upsampled_region_size - 1),
+            num=int(upsampled_region_size),
+        )
+        kernel = np.exp(kernel[:, None] * ax_freq * im2pi, dtype=np.complex64)
         # Equivalent to:
         #   data[i, j, k] = kernel[i, :] @ data[j, k].T
         upsampled = np.tensordot(kernel, upsampled, axes=(1, -1))
     return upsampled
 
 
-def refine_center_upsampling(corr_shape, center, corrspecs, upsample_factor: int):
+def refine_center_upsampling(
+    corr_shape: Tuple[int, int],
+    center: Tuple[int, int],
+    corrspecs: npt.NDArray,
+    upsample_factor: int,
+):
+    '''
+    Parameters
+    ----------
+    corr_shape : Tuple[int, int]
+        The shape of the correlation map if corrspecs were ifft'd
+    center : Tuple[int, int]
+        (y, x) coordinates of the argmax center within the correlation map
+    corrspecs : np.ndarray[(2,), np.float32]
+        The rfft2 of the correlation map (last dimension halved + 1, normally)
+    upsample_factor : int
+        The number of upsampled pixels per pixel in the original correlation map
+        when finding the refined position. Directly determines the precision of the
+        result (e.g. 20 => 0.05 pixel precision).
+
+    Returns
+    -------
+    refined : np.ndarray[(2,), np.float32]
+        The position of the refined maximum
+    '''
     centrepoint = np.asarray(corr_shape) / 2
 
     shift = np.asarray(center) - centrepoint
@@ -66,11 +86,16 @@ def refine_center_upsampling(corr_shape, center, corrspecs, upsample_factor: int
     upsampled_region_size = np.ceil(upsample_factor * 1.5)
     dftshift = np.fix(upsampled_region_size / 2.0)
     sample_region_offset = dftshift - shift_us
+
+    frequencies = (
+        fft.fftfreq(corr_shape[0], upsample_factor),
+        fft.rfftfreq(corr_shape[1], upsample_factor),
+    )
+
     cross_correlation_us = _upsampled_dft(
-        corr_shape=corr_shape,
         corrspecs=corrspecs.conj(),
+        frequencies=frequencies,
         upsampled_region_size=upsampled_region_size,
-        upsample_factor=upsample_factor,
         axis_offsets=sample_region_offset,
     ).conj()
     maxima = np.unravel_index(
