@@ -57,6 +57,7 @@ def refine_center_upsampling(
     corr_shape: Tuple[int, int],
     center: Tuple[int, int],
     corrspecs: npt.NDArray,
+    frequencies: Tuple[npt.NDArray, npt.NDArray],
     upsample_factor: int,
 ):
     '''
@@ -68,6 +69,8 @@ def refine_center_upsampling(
         (y, x) coordinates of the argmax center within the correlation map
     corrspecs : np.ndarray[(2,), np.float32]
         The rfft2 of the correlation map (last dimension halved + 1, normally)
+    frequencies : Tuple[np.ndarray[(2,), np.float32]]
+        The fft frequencies corresponding to the axes of corrspecs
     upsample_factor : int
         The number of upsampled pixels per pixel in the original correlation map
         when finding the refined position. Directly determines the precision of the
@@ -86,11 +89,6 @@ def refine_center_upsampling(
     upsampled_region_size = np.ceil(upsample_factor * 1.5)
     dftshift = np.fix(upsampled_region_size / 2.0)
     sample_region_offset = dftshift - shift_us
-
-    frequencies = (
-        fft.fftfreq(corr_shape[0], upsample_factor),
-        fft.rfftfreq(corr_shape[1], upsample_factor),
-    )
 
     cross_correlation_us = _upsampled_dft(
         corrspecs=corrspecs.conj(),
@@ -247,13 +245,19 @@ def evaluate_upsampling(corrspecs, corrs, peaks, crop_size, sig_shape, upsample_
     # evaluate_upsampling_fast and evaluate_upsampling_full
     corrspec_stack = corrspecs.ndim == 3
     corr_shape = corrs.shape[1:] if corrspec_stack else sig_shape
+
+    frequencies = (
+        fft.fftfreq(corr_shape[0], upsample_factor),
+        fft.rfftfreq(corr_shape[1], upsample_factor),
+    )
+
     for i in range(len(corrs)):
         corrspec = corrspecs[i] if corrspec_stack else corrspecs
         center = out_centers[i]
         if corrspec_stack:
             center = _unshift(center, peaks[i], crop_size)
         out_refineds[i] = refine_center_upsampling(
-            corr_shape, center, corrspec, upsample_factor=upsample_factor
+            corr_shape, center, corrspec, frequencies, upsample_factor=upsample_factor
         )
         if corrspec_stack:
             out_refineds[i] = _shift(out_refineds[i], peaks[i], crop_size)
