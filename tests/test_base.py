@@ -1,9 +1,14 @@
 import numpy as np
 import scipy.ndimage
 import pytest
+from pytest import approx
+from scipy.ndimage import fourier_shift
 
 from libertem_blobfinder import base
 import libertem_blobfinder.base.correlation  # noqa F401
+from libertem_blobfinder.base.correlation import refine_center_upsampling, do_correlations
+from libertem_blobfinder.common.patterns import Circular
+
 
 from utils import _mk_random
 
@@ -99,3 +104,58 @@ def test_com():
     com = base.correlation.center_of_mass(data)
     print(ref, com, np.array(ref) - np.array(com))
     assert np.allclose(ref, com)
+
+
+@pytest.mark.parametrize(
+    "upsample_factor", (10, 25)
+)
+@pytest.mark.parametrize(
+    "shift", (
+        (-3.7, 4.2),
+        (6.7, 8.1),
+        (0.2, 9.7),
+    )
+)
+def test_refinement_upsampling(upsample_factor, shift):
+    fft = libertem_blobfinder.base.correlation.fft
+
+    sig_shape = (64, 64)
+    radius = 13
+
+    pattern = Circular(radius)
+    frame = pattern.get_mask(sig_shape).astype(np.float32)
+    template = pattern.get_template(sig_shape)
+
+    frame_shifted = fft.ifft2(
+        fourier_shift(fft.fft2(frame), shift=shift)
+    ).real
+
+    corrs, corrspecs = do_correlations(
+        template[np.newaxis, ...],
+        frame_shifted[np.newaxis, ...],
+    )
+    corr = corrs[0]
+    corrspec = corrspecs[0]
+
+    peak_argmax = np.unravel_index(
+        corr.argmax(),
+        corr.shape,
+    )
+
+    corr_shape = corr.shape
+    corr_centre = np.asarray(corr_shape) / 2
+    frequencies = (
+        fft.fftfreq(corr_shape[0], upsample_factor),
+        fft.rfftfreq(corr_shape[1], upsample_factor),
+    )
+
+    refined_center = refine_center_upsampling(
+        corr_centre,
+        peak_argmax,
+        corrspec,
+        frequencies,
+        upsample_factor,
+    )
+
+    true_centre = scipy.ndimage.center_of_mass(frame_shifted)
+    assert refined_center == approx(true_centre, abs=1 / upsample_factor)
