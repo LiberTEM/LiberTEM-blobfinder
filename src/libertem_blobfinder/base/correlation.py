@@ -54,19 +54,19 @@ def _upsampled_dft(
 
 
 def refine_center_upsampling(
-    corr_shape: Tuple[int, int],
-    center: Tuple[int, int],
+    corrmap_center: npt.NDArray,
+    upsample_pos: npt.NDArray,
     corrspecs: npt.NDArray,
     frequencies: Tuple[npt.NDArray, npt.NDArray],
     upsample_factor: int,
-):
+) -> npt.NDArray:
     '''
     Parameters
     ----------
-    corr_shape : Tuple[int, int]
-        The shape of the correlation map if corrspecs were ifft'd
-    center : Tuple[int, int]
-        (y, x) coordinates of the argmax center within the correlation map
+    corrmap_center : np.ndarray[(2,), np.float32]
+        The centre of the correlation map resulting from irfft(corrspecs)
+    upsample_pos : np.ndarray[(2,), np.float32]
+        (y, x) coordinates of the argmax position within the correlation map
     corrspecs : np.ndarray[(2,), np.float32]
         The rfft2 of the correlation map (last dimension halved + 1, normally)
     frequencies : Tuple[np.ndarray[(2,), np.float32]]
@@ -81,9 +81,9 @@ def refine_center_upsampling(
     refined : np.ndarray[(2,), np.float32]
         The position of the refined maximum
     '''
-    centrepoint = np.asarray(corr_shape) / 2
-
-    shift = np.asarray(center) - centrepoint
+    # Move the real position in corr to the position
+    # in the fft (essentially apply fftshift without wrapping)
+    shift = upsample_pos - corrmap_center
     shift_us = np.round(shift * upsample_factor)
 
     upsampled_region_size = np.ceil(upsample_factor * 1.5)
@@ -96,14 +96,18 @@ def refine_center_upsampling(
         upsampled_region_size=upsampled_region_size,
         axis_offsets=sample_region_offset,
     ).conj()
+
+    # Find the argmax in the upsampled corrmap
     maxima = np.unravel_index(
         np.abs(cross_correlation_us).argmax(),
         cross_correlation_us.shape,
     )
     maxima = np.stack(maxima).astype(np.float32, copy=False)
     maxima -= dftshift
+
+    # Transform the maximum back into the coordinate system of corr
     shift += maxima / upsample_factor
-    shift += centrepoint
+    shift += corrmap_center
     return shift.astype(np.float32)
 
 
@@ -239,12 +243,13 @@ def evaluate_correlations(corrs, peaks, crop_size,
 def evaluate_upsampling(corrspecs, corrs, peaks, crop_size, sig_shape, upsample_factor,
         out_centers, out_refineds):
     # A corrspec stack means we are processing corrspecs of crops of the frame
-    # and corrs are the irfft2 of each corrspec. If False, corrspecs is the rfft2
-    # of the whole frame and corrs are the crops from the irfft2 of corrspecs
-    # Alternative to these gynmastics is specialise evaluate_upsampling into
+    # and corrs are the irfft2 of each corrspec. Otherwise, corrspecs is the single rfft2
+    # of the whole frame and corrs are the crops from the irfft2 of corrspecs.
+    # An alternative to these gynmastics is specialise evaluate_upsampling into
     # evaluate_upsampling_fast and evaluate_upsampling_full
     corrspec_stack = corrspecs.ndim == 3
     corr_shape = corrs.shape[1:] if corrspec_stack else sig_shape
+    corr_center = np.asarray(corr_shape) / 2
 
     frequencies = (
         fft.fftfreq(corr_shape[0], upsample_factor),
@@ -257,7 +262,7 @@ def evaluate_upsampling(corrspecs, corrs, peaks, crop_size, sig_shape, upsample_
         if corrspec_stack:
             center = _unshift(center, peaks[i], crop_size)
         out_refineds[i] = refine_center_upsampling(
-            corr_shape, center, corrspec, frequencies, upsample_factor=upsample_factor
+            corr_center, center, corrspec, frequencies, upsample_factor=upsample_factor
         )
         if corrspec_stack:
             out_refineds[i] = _shift(out_refineds[i], peaks[i], crop_size)
