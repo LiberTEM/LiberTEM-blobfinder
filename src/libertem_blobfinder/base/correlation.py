@@ -36,7 +36,11 @@ def _upsampled_dft(
     upsampled_region_size: int,
     axis_offsets: Tuple[float, float],
 ) -> np.ndarray:
-
+    """
+    Heavily adapted from skimage.registration._phase_cross_correlation.py
+    which is itself based on code by Manuel Guizar released initially under a
+    BSD 3-Clause license @ https://www.mathworks.com/matlabcentral/fileexchange/18401
+    """
     im2pi = -1j * 2 * np.pi
     upsampled = corrspecs
     for (ax_freq, ax_offset) in zip(frequencies[::-1], axis_offsets[::-1]):
@@ -80,6 +84,8 @@ def refine_center_upsampling(
     refined : np.ndarray[(2,), np.float32]
         The position of the refined maximum
     '''
+    # Same license info as in the function _upsampled_dft
+
     # Move the real position in corr to the position
     # in the fft (essentially apply fftshift without wrapping)
     shift = upsample_pos - corrmap_center
