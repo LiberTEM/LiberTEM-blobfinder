@@ -106,6 +106,12 @@ class FastCorrelationUDF(CorrelationUDF):
         zero_shift : Union[AUXBufferWrapper, numpy.ndarray, None], optional
             Zero shift, for example descan error. Can be :code:`None`, :code:`numpy.array((y, x))`
             or AUX data with :code:`(y, x)` for each frame.
+        upsample: Union[bool, int], optional
+            Use DFT upsampling for the refinement step, by default False. Supplying
+            True will choose a reasonable default upsampling factor, while any
+            positive integer > 1 will upsample the correlation peak by this factor.
+            DFT upsampling can provide more accurate center values, especially when
+            peak shifts are small, but does require more computation time.
         '''
         # For testing purposes, allow to inject a different limit via
         # an internal kwarg
@@ -143,7 +149,7 @@ class FastCorrelationUDF(CorrelationUDF):
             frame=frame, peaks=self.get_peaks() + np.round(self.get_zero_shift()).astype(int),
             out_centers=centers, out_refineds=refineds,
             out_heights=peak_values, out_elevations=peak_elevations,
-            crop_bufs=self.task_data.crop_bufs
+            crop_bufs=self.task_data.crop_bufs, upsample=self.params.get('upsample', False)
         )
 
 
@@ -169,6 +175,12 @@ class FullFrameCorrelationUDF(CorrelationUDF):
         zero_shift : Union[AUXBufferWrapper, numpy.ndarray, None], optional
             Zero shift, for example descan error. Can be :code:`None`, :code:`numpy.array((y, x))`
             or AUX data with :code:`(y, x)` for each frame.
+        upsample: Union[bool, int], optional
+            Use DFT upsampling for the refinement step, by default False. Supplying
+            True will choose a reasonable default upsampling factor, while any
+            positive integer > 1 will upsample the correlation peak by this factor.
+            DFT upsampling can provide more accurate center values, especially when
+            peak shifts are small, but does require more computation time.
         '''
         # For testing purposes, allow to inject a different limit via
         # an internal kwarg
@@ -214,6 +226,7 @@ class FullFrameCorrelationUDF(CorrelationUDF):
             out_elevations=peak_elevations,
             frame_buf=self.task_data.frame_buf,
             buf_count=self.task_data.buf_count,
+            upsample=self.params.get('upsample', False),
         )
 
 
@@ -331,7 +344,8 @@ class SparseCorrelationUDF(CorrelationUDF):
 
 
 def run_fastcorrelation(
-        ctx, dataset, peaks, match_pattern: MatchPattern, zero_shift=None, **kwargs):
+    ctx, dataset, peaks, match_pattern: MatchPattern, zero_shift=None, upsample=False, **kwargs
+):
     """
     Wrapper function to construct and run a :class:`FastCorrelationUDF`
 
@@ -345,6 +359,10 @@ def run_fastcorrelation(
     zero_shift : Union[AUXBufferWrapper, numpy.ndarray, None], optional
         Zero shift, for example descan error. Can be :code:`None`, :code:`numpy.array((y, x))`
         or AUX data with :code:`(y, x)` for each frame.
+    upsample : Union[bool, int], optional
+        Whether to use upsampling DFT for refinement. False to deactivate (default) or a positive
+        integer >1 to upsample by this factor when refining the correlation peak positions. Upsample
+        True will choose a sensible upmsapling factor.
     kwargs : passed through to :meth:`~libertem.api.Context.run_udf`
 
     Returns
@@ -353,7 +371,9 @@ def run_fastcorrelation(
         See :meth:`CorrelationUDF.get_result_buffers` for details.
     """
     peaks = peaks.astype(int)
-    udf = FastCorrelationUDF(peaks=peaks, match_pattern=match_pattern, zero_shift=zero_shift)
+    udf = FastCorrelationUDF(
+        peaks=peaks, match_pattern=match_pattern, zero_shift=zero_shift, upsample=upsample,
+    )
     return ctx.run_udf(dataset=dataset, udf=udf, **kwargs)
 
 

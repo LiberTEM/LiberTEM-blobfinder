@@ -1,6 +1,5 @@
 import os
 from typing import Union, Tuple
-from typing_extensions import Literal
 
 import numpy as np
 import numpy.typing as npt
@@ -366,7 +365,7 @@ def allocate_crop_bufs(crop_size, n_peaks, dtype, limit=2**19):
 
 def process_frame_fast(template, crop_size, frame, peaks,
         out_centers, out_refineds, out_heights, out_elevations,
-        crop_bufs, upsample: Union[Literal[False], int] = False):
+        crop_bufs, upsample: Union[bool, int] = False):
     '''
     Find the parameters of peaks in a diffraction pattern by correlation with a template
 
@@ -403,9 +402,10 @@ def process_frame_fast(template, crop_size, frame, peaks,
         Aligned buffer for pyfftw. Shape (n, 2 * crop_size, 2 * crop_size) and float dtype.
         n doesn't have to match the number of peaks. Instead, it should be chosen for good L3 cache
         efficiency. :meth:`allocate_crop_bufs` can be used to allocate this buffer.
-    upsample : Union[Literal[False], int]
+    upsample : Union[bool, int], optional
         Whether to use upsampling DFT for refinement. False to deactivate (default) or a positive
-        integer >1 to upsample by this factor when refining the correlation peak positions.
+        integer >1 to upsample by this factor when refining the correlation peak positions. Upsample
+        True will choose a sensible upmsapling factor.
 
     Returns
     -------
@@ -467,7 +467,7 @@ def process_frame_fast(template, crop_size, frame, peaks,
 
 def process_frame_full(template, crop_size, frame, peaks,
         out_centers=None, out_refineds=None, out_heights=None, out_elevations=None,
-        frame_buf=None, buf_count=None, upsample: Union[Literal[False], int] = False):
+        frame_buf=None, buf_count=None, upsample: Union[bool, int] = False):
     '''
     Find the parameters of peaks in a diffraction pattern by correlation with a template
 
@@ -510,9 +510,10 @@ def process_frame_full(template, crop_size, frame, peaks,
     buf_count : int
         Number of peaks to process per outer loop iteration. This allows optimization of L3 cache
         efficiency.
-    upsample : Union[Literal[False], int]
+    upsample : Union[bool, int], optional
         Whether to use upsampling DFT for refinement. False to deactivate (default) or a positive
-        integer >1 to upsample by this factor when refining the correlation peak positions.
+        integer >1 to upsample by this factor when refining the correlation peak positions. Upsample
+        True will choose a sensible upmsapling factor.
 
 
     Returns
@@ -549,6 +550,8 @@ def process_frame_full(template, crop_size, frame, peaks,
     ...     )
     >>> assert np.allclose(refineds[0], peaks, atol=0.1)
     '''
+    if upsample is True:
+        upsample = 20
     log_scale(frame, out=frame_buf)
     spec_part = fft.rfft2(frame_buf)
     corrspec = template * spec_part
