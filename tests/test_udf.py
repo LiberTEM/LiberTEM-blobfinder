@@ -308,6 +308,8 @@ def test_run_refine_blocktests(lt_ctx, cls):
         (udf.correlation.FastCorrelationUDF, int, {}),
         (udf.correlation.FastCorrelationUDF, float, {}),
         (udf.correlation.FastCorrelationUDF, float, {'zero_shift': (2, 3)}),
+        (udf.correlation.FastCorrelationUDF, int, {'upsample': True}),
+        (udf.correlation.FastCorrelationUDF, int, {'upsample': 15}),
         (udf.correlation.SparseCorrelationUDF, int, {'steps': 3}),
         (udf.correlation.SparseCorrelationUDF, float, {'steps': 3}),
         (udf.correlation.SparseCorrelationUDF, float, {'steps': 3, 'zero_shift': (2, 7)}),
@@ -378,6 +380,7 @@ def test_correlation_methods(lt_ctx, cls, dtype, kwargs):
     [
         (udf.correlation.FullFrameCorrelationUDF, int, {}),
         (udf.correlation.FullFrameCorrelationUDF, float, {}),
+        (udf.correlation.FullFrameCorrelationUDF, int, {'upsample': True}),
     ]
 )
 def test_correlation_method_fullframe(lt_ctx, cls, dtype, kwargs):
@@ -428,7 +431,6 @@ def test_correlation_method_fullframe(lt_ctx, cls, dtype, kwargs):
         # for p in np.flip(res['refineds'].data[0], axis=-1):
         #     ax.add_artist(plt.Circle(p, radius, fill=False, color='y'))
         # plt.show()
-
         assert np.allclose(res['refineds'].data[0], peaks, atol=0.5)
 
 

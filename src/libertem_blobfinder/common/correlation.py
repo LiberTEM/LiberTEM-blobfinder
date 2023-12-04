@@ -91,7 +91,7 @@ def process_frames_fast(
         Frame data. Currently, only Real values are supported.
     peaks : np.ndarray
         List of peaks of shape (n_peaks, 2)
-    upsample: Union[bool, int]
+    upsample: Union[bool, int], optional
         Use DFT upsampling for the refinement step, by default False. Supplying
         True will choose a reasonable default upsampling factor, while any
         positive integer > 1 will upsample the correlation peak by this factor.
@@ -121,8 +121,6 @@ def process_frames_fast(
     ... )
     >>> assert np.allclose(refineds[0], peaks, atol=0.1)
     '''
-    if upsample is True:
-        upsample = 20
 
     crop_size = pattern.get_crop_size()
     template = pattern.get_template(sig_shape=(2 * crop_size, 2 * crop_size))
@@ -168,7 +166,7 @@ def process_frames_full(
         Frame data. Currently, only real values are supported.
     peaks : np.ndarray
         List of peaks of shape (n_peaks, 2)
-    upsample: Union[bool, int]
+    upsample: Union[bool, int], optional
         Use DFT upsampling for the refinement step, by default False. Supplying
         True will choose a reasonable default upsampling factor, while any
         positive integer > 1 will upsample the correlation peak by this factor.
@@ -198,9 +196,6 @@ def process_frames_full(
     ... )
     >>> assert np.allclose(refineds[0], peaks, atol=0.1)
     '''
-    if upsample is True:
-        upsample = 20
-
     crop_size = pattern.get_crop_size()
     template = pattern.get_template(sig_shape=frames[0].shape)
 
