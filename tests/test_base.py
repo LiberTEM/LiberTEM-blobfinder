@@ -110,16 +110,21 @@ def test_com():
     "upsample_factor", (10, 25)
 )
 @pytest.mark.parametrize(
+    "sig_shape", (
+        (64, 64),
+        (61, 67),
+    )
+)
+@pytest.mark.parametrize(
     "shift", (
         (-3.7, 4.2),
         (6.7, 8.1),
         (0.2, 9.7),
     )
 )
-def test_refinement_upsampling(upsample_factor, shift):
+def test_refinement_upsampling(upsample_factor, sig_shape, shift):
     fft = libertem_blobfinder.base.correlation.fft
 
-    sig_shape = (64, 64)
     radius = 13
 
     pattern = Circular(radius)
