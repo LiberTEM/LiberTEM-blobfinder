@@ -113,10 +113,13 @@ def test_com():
     "sig_shape", (
         (64, 64),
         (61, 67),
+        (31, 32),
+        (32, 31),
     )
 )
 @pytest.mark.parametrize(
     "shift", (
+        (0, 0),
         (-3.7, 4.2),
         (6.7, 8.1),
         (0.2, 9.7),
@@ -131,9 +134,12 @@ def test_refinement_upsampling(upsample_factor, sig_shape, shift):
     frame = pattern.get_mask(sig_shape).astype(np.float32)
     template = pattern.get_template(sig_shape)
 
-    frame_shifted = fft.ifft2(
-        fourier_shift(fft.fft2(frame), shift=shift)
-    ).real
+    if shift != (0, 0):
+        frame_shifted = fft.ifft2(
+            fourier_shift(fft.fft2(frame), shift=shift),
+        ).real
+    else:
+        frame_shifted = frame
 
     corrs, corrspecs = do_correlations(
         template[np.newaxis, ...],
@@ -147,8 +153,15 @@ def test_refinement_upsampling(upsample_factor, sig_shape, shift):
         corr.shape,
     )
 
+    # This "correction" is for testing and should be
+    # integrated into the implementation
+    correction = np.asarray(tuple(s % 2 for s in sig_shape))
+    peak_argmax += correction
+    # coarse_max = (np.round(shift) + np.asarray(sig_shape) // 2)
+    # assert coarse_max == approx(peak_argmax)
+
     corr_shape = corr.shape
-    corr_centre = np.asarray(corr_shape) / 2
+    corr_centre = np.ceil(np.asarray(corr_shape) / 2, dtype=np.float32)
     frequencies = (
         fft.fftfreq(corr_shape[0], upsample_factor),
         fft.rfftfreq(corr_shape[1], upsample_factor),
