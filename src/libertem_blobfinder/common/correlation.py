@@ -125,7 +125,7 @@ def process_frames_fast(
     crop_size = pattern.get_crop_size()
     template = pattern.get_template(sig_shape=(2 * crop_size, 2 * crop_size))
 
-    centers = np.zeros((len(frames), len(peaks), 2), dtype=np.uint16)
+    centers = np.zeros((len(frames), len(peaks), 2), dtype=np.int16)
     refineds = np.zeros((len(frames), len(peaks), 2), dtype=np.float32)
     heights = np.zeros((len(frames), len(peaks)), dtype=np.float32)
     elevations = np.zeros((len(frames), len(peaks)), dtype=np.float32)

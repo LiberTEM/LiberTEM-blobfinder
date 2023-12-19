@@ -1,7 +1,9 @@
 import functools
 
 import numpy as np
+from numpy.testing import assert_allclose
 import pytest
+from scipy.signal import correlate2d
 
 import libertem.masks as m
 from libertem.utils.generate import cbed_frame
@@ -10,7 +12,9 @@ from libertem.udf.masks import ApplyMasksUDF
 
 from libertem_blobfinder import common
 import libertem_blobfinder.common.correlation
+from libertem_blobfinder.common.correlation import process_frames_fast
 import libertem_blobfinder.common.patterns
+from libertem_blobfinder.common.patterns import UserTemplate
 import libertem_blobfinder.udf.refinement  # noqa F401
 
 
@@ -201,3 +205,29 @@ def test_standalone_full():
         print(peaks - refineds)
 
         assert np.allclose(refineds[0], peaks, atol=0.5)
+
+
+@pytest.mark.parametrize(
+        'where', ((0, 0), (2, 3)),
+)
+@pytest.mark.parametrize(
+        'expected', ((1, 1), (3, 2)),
+)
+def test_scipy_correlate2d(where, expected):
+    frame = np.zeros((5, 6))
+    frame[where] = 1
+    pattern = frame.copy()
+    correlated = correlate2d(frame, pattern, mode='same')
+    ref_center = np.unravel_index(
+        np.argmax(correlated),
+        frame.shape
+    )
+    centers, refineds, heights, elevations = process_frames_fast(
+        pattern=UserTemplate(pattern),
+        frames=np.array([frame]),
+        peaks=np.array([expected]),
+        upsample=False
+    )
+    print(frame)
+    print(ref_center, centers[0, 0])
+    assert_allclose(ref_center, centers[0, 0])
