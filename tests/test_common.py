@@ -211,9 +211,9 @@ def test_standalone_full():
         'where', ((0, 0), (2, 3)),
 )
 @pytest.mark.parametrize(
-        'expected', ((1, 1), (3, 2)),
+        'peak', ((1, 1), (3, 2)),
 )
-def test_scipy_correlate2d(where, expected):
+def test_scipy_correlate2d(where, peak):
     frame = np.zeros((5, 6))
     frame[where] = 1
     pattern = frame.copy()
@@ -225,7 +225,7 @@ def test_scipy_correlate2d(where, expected):
     centers, refineds, heights, elevations = process_frames_fast(
         pattern=UserTemplate(pattern),
         frames=np.array([frame]),
-        peaks=np.array([expected]),
+        peaks=np.array([peak]),
         upsample=False
     )
     print(frame)
