@@ -260,7 +260,7 @@ def evaluate_upsampling(corrspecs, corrs, peaks, crop_size, sig_shape, upsample_
     # evaluate_upsampling_fast and evaluate_upsampling_full
     corrspec_stack = corrspecs.ndim == 3
     corr_shape = corrs.shape[1:] if corrspec_stack else sig_shape
-    corr_center = np.asarray(corr_shape) / 2
+    corr_center = np.ceil(np.asarray(corr_shape) / 2, dtype=np.float32)
 
     frequencies = (
         fft.fftfreq(corr_shape[0], upsample_factor),
