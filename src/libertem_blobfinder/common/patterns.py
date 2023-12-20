@@ -1,8 +1,10 @@
 import numpy as np
+from typing import Tuple
 
 import libertem.masks as masks
 
 from libertem_blobfinder.base.correlation import fft
+from skimage.util import crop
 
 
 class MatchPattern:
@@ -146,7 +148,7 @@ class UserTemplate(MatchPattern):
     '''
     User-defined template
     '''
-    def __init__(self, template, search=None):
+    def __init__(self, template: np.ndarray, search=None):
         '''
         Parameters
         ----------
@@ -164,34 +166,37 @@ class UserTemplate(MatchPattern):
         self.template = template
         super().__init__(search=search)
 
-    def get_mask(self, sig_shape):
-        result = np.zeros((sig_shape), dtype=self.template.dtype)
-        dy, dx = sig_shape
-        ty, tx = self.template.shape
-
-        left = dx / 2 - tx / 2
-        top = dy / 2 - ty / 2
-
-        r_left = max(0, left)
-        r_top = max(0, top)
-
-        t_left = max(0, -left)
-        t_top = max(0, -top)
-
-        crop_x = r_left - left
-        crop_y = r_top - top
-
-        h = int(ty - 2*crop_y)
-        w = int(tx - 2*crop_x)
-
-        r_left = int(r_left)
-        r_top = int(r_top)
-        t_left = int(t_left)
-        t_top = int(t_top)
-
-        result[r_top:r_top + h, r_left:r_left + w] = \
-            self.template[t_top:t_top + h, t_left:t_left + w]
-        return result
+    def get_mask(self, sig_shape: Tuple[int, int]) -> np.ndarray:
+        # Pad or Crop each dimension of self.template to
+        # match sig_shape at the ouput. For odd pads/crops
+        # the extra pixel is added/removed at the end of the axis
+        result = self.template.copy()
+        neutral = (0, 0)
+        for ax, (target, source) in enumerate(zip(sig_shape, self.template.shape)):
+            if target > source:
+                extra = target - source
+                fn = np.pad
+            elif target < source:
+                extra = source - target
+                fn = crop
+            else:
+                continue
+            before = after = extra // 2
+            if (before + after) != extra:
+                # In practice sig_shape is always even (2 * crop_size)
+                # so this path implies the template has an odd dimension.
+                # therefore a choice here of how to centre the array
+                # left += 1
+                after += 1
+            result = fn(
+                result,
+                tuple(
+                    (before, after) if ax == i else neutral
+                    for i in range(result.ndim)
+                )
+            )
+        assert result.shape == tuple(sig_shape)
+        return result.astype(self.template.dtype)
 
 
 class RadialGradientBackgroundSubtraction(UserTemplate):
