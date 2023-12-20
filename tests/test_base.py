@@ -113,8 +113,8 @@ def test_com():
     "sig_shape", (
         (64, 64),
         (61, 67),
-        (31, 32),
-        (32, 31),
+        (57, 60),
+        (63, 72),
     )
 )
 @pytest.mark.parametrize(
@@ -152,13 +152,6 @@ def test_refinement_upsampling(upsample_factor, sig_shape, shift):
         corr.argmax(),
         corr.shape,
     )
-
-    # This "correction" is for testing and should be
-    # integrated into the implementation
-    correction = np.asarray(tuple(s % 2 for s in sig_shape))
-    peak_argmax += correction
-    # coarse_max = (np.round(shift) + np.asarray(sig_shape) // 2)
-    # assert coarse_max == approx(peak_argmax)
 
     corr_shape = corr.shape
     corr_centre = np.ceil(np.asarray(corr_shape) / 2, dtype=np.float32)
