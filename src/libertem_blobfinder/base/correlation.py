@@ -213,7 +213,7 @@ def do_correlations(template, crop_parts):
     '''
     spec_parts = fft.rfft2(crop_parts)
     corrspecs = template * spec_parts
-    corrs = fft.fftshift(
+    corrs = fft.ifftshift(
         fft.irfft2(
             corrspecs,
             s=crop_parts.shape[-2:],
