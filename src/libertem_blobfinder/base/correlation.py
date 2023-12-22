@@ -393,8 +393,9 @@ def process_frame_fast(template, crop_size, frame, peaks,
     ----------
     template : numpy.ndarray
         Real Fourier transform of the correlation pattern.
-        The source pattern should have size (2 * crop_size, 2 * crop_size). Please note that
-        the real Fourier transform (fft.rfft2) of the source pattern has a different shape!
+        The source pattern shape should match the shape[1:] of crop_bufs.
+        Please note that the real Fourier transform (fft.rfft2) of the
+        source pattern has a different shape!
     crop_size : int
         Half the size of the correlation pattern. Given as a parameter since real Fourier
         transform changes the size.
@@ -495,7 +496,8 @@ def process_frame_full(template, crop_size, frame, peaks,
     ----------
     template : numpy.ndarray
         Real Fourier transform of the correlation pattern.
-        The source pattern should have size (2 * crop_size, 2 * crop_size). Please note that
+        The source pattern shape should match the argument crop_size, either the supplied
+        shape or (2 * crop_size, 2 * crop_size) if default. Please note that
         the real Fourier transform (fft.rfft2) of the source pattern has a different shape!
     crop_size : int
         Half the size of the correlation pattern. Given as a parameter since real Fourier
