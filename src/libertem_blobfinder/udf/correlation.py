@@ -33,7 +33,9 @@ class CorrelationUDF(UDF):
         The common buffers for all correlation methods.
 
         :code:`centers`:
-            (y, x) integer positions.
+            (y, x) integer positions. NOTE: the returned positions
+            can be out-of-frame and the user should perform bounds
+            checking if directly indexing into the frame array.
         :code:`refineds`:
             (y, x) positions with subpixel refinement.
         :code:`peak_values`:
