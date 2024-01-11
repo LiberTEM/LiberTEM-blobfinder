@@ -183,10 +183,10 @@ class UserTemplate(MatchPattern):
                 continue
             before = after = extra // 2
             if (before + after) != extra:
-                # In practice sig_shape is always even (2 * crop_size)
+                # In the default case sig_shape is always even (2 * crop_size)
                 # so this path implies the template has an odd dimension.
                 # therefore a choice here of how to centre the array
-                # left += 1
+                # before += 1
                 after += 1
             result = fn(
                 result,
