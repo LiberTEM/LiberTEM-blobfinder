@@ -47,7 +47,7 @@ class CorrelationUDF(UDF):
 
         return {
             'centers': self.buffer(
-                kind="nav", extra_shape=(num_disks, 2), dtype="u2"
+                kind="nav", extra_shape=(num_disks, 2), dtype=np.int32,
             ),
             'refineds': self.buffer(
                 kind="nav", extra_shape=(num_disks, 2), dtype="float32"
