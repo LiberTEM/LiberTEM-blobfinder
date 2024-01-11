@@ -144,6 +144,7 @@ def test_refinement_upsampling(upsample_factor, sig_shape, shift):
     corrs, corrspecs = do_correlations(
         template[np.newaxis, ...],
         frame_shifted[np.newaxis, ...],
+        with_specs=True,
     )
     corr = corrs[0]
     corrspec = corrspecs[0]
