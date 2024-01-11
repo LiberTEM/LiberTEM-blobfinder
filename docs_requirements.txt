@@ -7,3 +7,5 @@ sphinx-rtd-theme
 nbsphinx!=0.8.8
 nbsphinx_link
 ipython
+# temporary for https://github.com/jupyter/nbconvert/issues/2092
+nbconvert<7.14
