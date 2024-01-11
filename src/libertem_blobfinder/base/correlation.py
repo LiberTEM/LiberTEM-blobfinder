@@ -192,7 +192,7 @@ def peak_elevation(center, corrmap, height, r_min=1.5, r_max=float('inf')):
     return max(0, result)
 
 
-def do_correlations(template, crop_parts):
+def do_correlations(template, crop_parts, with_specs: bool = False):
     '''
     Calculate the correlation of the pre-calculated template with a stack
     of cropped peaks using fast correlation.
@@ -205,11 +205,17 @@ def do_correlations(template, crop_parts):
         the real Fourier transform (fft.rfft2) of the source pattern has a different shape!
     crop_parts : numpy.ndarray
         Stack of peaks cropped from the frame.
+    with_specs: bool, optional
+        Whether to return the FFT correlation maps before inversion,
+        used for FFT upsampling. By default, False.
 
     Returns
     -------
     corrs : numpy.ndarray
         Correlation of the correlation pattern and the peaks.
+    corrspecs : numpy.ndarray
+        The FFT correlation maps before inversion, returned only
+        if with_specs is True.
     '''
     spec_parts = fft.rfft2(crop_parts)
     corrspecs = template * spec_parts
@@ -220,7 +226,9 @@ def do_correlations(template, crop_parts):
         ),
         axes=(-2, -1),
     )
-    return corrs, corrspecs
+    if with_specs:
+        return corrs, corrspecs
+    return corrs
 
 
 @numba.njit
@@ -464,7 +472,7 @@ def process_frame_fast(template, crop_size, frame, peaks,
             out_crop_bufs=crop_bufs[:size]
         )
         log_scale_cropbufs_inplace(crop_bufs[:size])
-        corrs, corrspecs = do_correlations(template, crop_bufs[:size])
+        corrs, corrspecs = do_correlations(template, crop_bufs[:size], with_specs=True)
         evaluate_correlations(
             corrs=corrs, peaks=peaks[start:stop], crop_size=crop_size,
             out_centers=out_centers[start:stop], out_refineds=out_refineds[start:stop],
