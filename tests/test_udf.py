@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from numpy.testing import assert_allclose
 import matplotlib.pyplot as plt
 
 import libertem_blobfinder.common.gridmatching as grm
@@ -370,8 +371,10 @@ def test_correlation_methods(lt_ctx, cls, dtype, kwargs):
             # for p in np.flip(res['refineds'].data[0], axis=-1):
             #     ax.add_artist(plt.Circle(p, radius, fill=False, color='y'))
             # plt.show()
-
-            assert np.allclose(res['refineds'].data[0], peaks, atol=0.5)
+            atol = 0.5
+            if 'upsample' in kwargs:
+                atol = 0.25
+            assert_allclose(res['refineds'].data[0], peaks, atol=atol)
 
 
 @pytest.mark.with_numba
@@ -431,7 +434,10 @@ def test_correlation_method_fullframe(lt_ctx, cls, dtype, kwargs):
         # for p in np.flip(res['refineds'].data[0], axis=-1):
         #     ax.add_artist(plt.Circle(p, radius, fill=False, color='y'))
         # plt.show()
-        assert np.allclose(res['refineds'].data[0], peaks, atol=0.5)
+        atol = 0.5
+        if 'upsample' in kwargs:
+            atol = 0.25
+        assert_allclose(res['refineds'].data[0], peaks, atol=atol)
 
 
 @pytest.mark.parametrize(
