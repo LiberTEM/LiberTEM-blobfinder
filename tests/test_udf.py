@@ -372,8 +372,9 @@ def test_correlation_methods(lt_ctx, cls, dtype, kwargs):
             #     ax.add_artist(plt.Circle(p, radius, fill=False, color='y'))
             # plt.show()
             atol = 0.5
-            if 'upsample' in kwargs:
-                atol = 0.25
+            # Because of rounding in cbed_frame, cannot be sure of tolerance!
+            # if 'upsample' in kwargs:
+            #     atol = 0.25
             assert_allclose(res['refineds'].data[0], peaks, atol=atol)
 
 
@@ -435,8 +436,9 @@ def test_correlation_method_fullframe(lt_ctx, cls, dtype, kwargs):
         #     ax.add_artist(plt.Circle(p, radius, fill=False, color='y'))
         # plt.show()
         atol = 0.5
-        if 'upsample' in kwargs:
-            atol = 0.25
+        # Because of rounding in cbed_frame, cannot be sure of tolerance!
+        # if 'upsample' in kwargs:
+        #     atol = 0.25
         assert_allclose(res['refineds'].data[0], peaks, atol=atol)
 
 
