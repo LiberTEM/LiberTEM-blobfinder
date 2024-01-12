@@ -40,6 +40,8 @@ def _upsampled_dft(
     Heavily adapted from skimage.registration._phase_cross_correlation.py
     which is itself based on code by Manuel Guizar released initially under a
     BSD 3-Clause license @ https://www.mathworks.com/matlabcentral/fileexchange/18401
+
+    :meta private:
     """
     im2pi = -1j * 2 * np.pi
     upsampled = corrspecs
@@ -83,6 +85,8 @@ def refine_center_upsampling(
     -------
     refined : np.ndarray[(2,), np.float32]
         The position of the refined maximum
+
+    :meta private:
     '''
     # Same license info as in the function _upsampled_dft
 
@@ -261,6 +265,46 @@ def evaluate_correlations(corrs, peaks, crop_size,
 
 def evaluate_upsampling(corrspecs, corrs, peaks, crop_size, sig_shape, upsample_factor,
         out_centers, out_refineds):
+    """
+    Evaluate the refined peak positions using DFT upsampling
+
+    Internally re-inverts corrspecs with upsampling around
+    the positions found in out_centers, and places the
+    argmax of these new corrmaps into out_refineds.
+
+    This function operates either on a full-frame corrspecs (ndim of 2)
+    or a stack of corrspecs (ndim of 3) when using the 'fast' processing
+    mode (crops of the frame).
+
+    Parameters
+    ----------
+    corrspecs : numpy.ndarray
+        The rFFT correlations before inversion. If :code:`ndim == 3`
+        we are processing a stack of crops from a frame, while if
+        :code:`ndim == 2` we are processing the correlation map of
+        the whole frame.
+    corrs : numpy.ndarray
+        Stack of correlation maps, either matching the stack of corrspecs
+        (fast processing), or crops from the full-frame correlation map.
+    peaks : np.ndarray
+        List of peaks of shape (n_peaks, 2) in full-frame frame coordinates,
+        matching the order of corrs if processing crops.
+    crop_size : int
+        Half the size of the correlation pattern used to compute corrspecs.
+    sig_shape : Tuple[int, int]
+        The shape of the full frame
+    upsample_factor : int
+        The degree to upsample the frame, determines the precision
+        of the result (:code:`1 / upsample_factor`).
+    out_centers : np.ndarray
+        Buffer filled with for unrefined peak positions of shape (n_peaks, 2).
+        These are read to know the upsampling location.
+    out_refineds : np.ndarray
+        Output buffer for refined center positions of shape (n_peaks, 2)
+        and float dtype, values will be overwritten with the upsampled coordinates.
+
+    :meta private:
+    """
     # A corrspec stack means we are processing corrspecs of crops of the frame
     # and corrs are the irfft2 of each corrspec. Otherwise, corrspecs is the single rfft2
     # of the whole frame and corrs are the crops from the irfft2 of corrspecs.
