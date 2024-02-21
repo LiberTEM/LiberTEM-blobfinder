@@ -7,7 +7,7 @@ data for strain maps in three automated steps:
 
 1. Identify peaks using :meth:`~libertem_blobfinder.common.correlation.get_peaks`
 2. Extract a probable lattice from the peak positions using
-   :meth:`libertem.analysis.fullmatch.FullMatcher.full_match`
+   :meth:`libertem_blobfinder.common.fullmatch.FullMatcher.full_match`
 3. Refine the lattice for each frame using :meth:`~libertem_blobfinder.udf.refinement.run_refine`
 
 The algorithms are currently focused on the initial data extraction step, i.e.
@@ -36,7 +36,7 @@ Relevant input parameters are
       :class:`~libertem_blobfinder.common.patterns.RadialGradientBackgroundSubtraction`, and
       :class:`~libertem_blobfinder.common.patterns.UserTemplate`
     * :code:`search` parameter to define the search area around the expected position
-* Matcher: Instance of :class:`libertem.analysis.gridmatching.Matcher`.
+* Matcher: Instance of :class:`libertem_blobfinder.common.gridmatching.Matcher`.
     * :code:`tolerance` for position errors in the matching routine
 * Number of disks to find in the initial step
 

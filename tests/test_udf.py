@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import matplotlib.pyplot as plt
 
-import libertem.analysis.gridmatching as grm
+import libertem_blobfinder.common.gridmatching as grm
 import libertem.masks as m
 from libertem.utils.generate import cbed_frame
 from libertem.io.dataset.memory import MemoryDataSet

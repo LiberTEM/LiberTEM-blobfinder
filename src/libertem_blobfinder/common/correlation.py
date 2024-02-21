@@ -31,7 +31,7 @@ def get_peaks(sum_result, match_pattern: MatchPattern, num_peaks):
     Find peaks of the correlation between :code:`sum_result` and :code:`match_pattern`.
 
     The result  can then be used as input to
-    :meth:`~libertem.analysis.fullmatch.FullMatcher.full_match`
+    :meth:`~libertem_blobfinder.common.fullmatch.FullMatcher.full_match`
     to extract grid parameters, :meth:`~libertem_blobfinder.correlation.run_fastcorrelation`
     to find the position in each frame or to construct a mask to extract feature vectors with
     :meth:`~libertem_blobfinder.common.patterns.feature_vector`.

@@ -21,6 +21,47 @@ def lt_ctx(inline_executor):
     return lt.Context(executor=inline_executor)
 
 
+@pytest.fixture
+def points():
+    return np.array([
+        (0, 0),
+        (0, 1),
+        (1, 0),
+        (1, 1),
+        (0, -1),
+        (-1, 0),
+        (-1, -1)
+    ])
+
+
+@pytest.fixture
+def indices():
+    return np.array([
+        (0, 0),
+        (1, 0),
+        (0, 1),
+        (1, 1),
+        (-1, 0),
+        (0, -1),
+        (-1, -1)
+    ])
+
+
+@pytest.fixture
+def zero():
+    return np.array([0, 0])
+
+
+@pytest.fixture
+def a():
+    return np.array([0, 1])
+
+
+@pytest.fixture
+def b():
+    return np.array([1, 0])
+
+
 @pytest.fixture(autouse=True)
 def auto_ctx(doctest_namespace):
     ctx = lt.Context(executor=InlineJobExecutor())

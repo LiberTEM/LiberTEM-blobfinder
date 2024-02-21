@@ -1,7 +1,7 @@
 import numpy as np
 from libertem.utils import frame_peaks
 
-import libertem.analysis.gridmatching as grm
+import libertem_blobfinder.common.gridmatching as grm
 
 from libertem_blobfinder.common.patterns import MatchPattern
 from libertem_blobfinder.udf.correlation import (
@@ -79,15 +79,15 @@ class RefinementMixin():
 
 class FastmatchMixin(RefinementMixin):
     '''
-    Refinement using :meth:`~libertem.analysis.gridmatching.Matcher.fastmatch`
+    Refinement using :meth:`~libertem_blobfinder.common.gridmatching.Matcher.fastmatch`
     '''
     def __init__(self, *args, **kwargs):
         '''
         Parameters
         ----------
 
-        matcher : libertem.analysis.gridmatching.Matcher
-            Instance of :class:`~libertem.analysis.gridmatching.Matcher`
+        matcher : libertem_blobfinder.common.gridmatching.Matcher
+            Instance of :class:`~libertem_blobfinder.common.gridmatching.Matcher`
         start_zero : numpy.ndarray
             Approximate value (y, x) in px for "zero" point (origin, zero order peak)
         start_a : numpy.ndarray
@@ -116,20 +116,20 @@ class FastmatchMixin(RefinementMixin):
 
 class AffineMixin(RefinementMixin):
     '''
-    Refinement using :meth:`~libertem.analysis.gridmatching.Matcher.affinematch`
+    Refinement using :meth:`~libertem_blobfinder.common.gridmatching.Matcher.affinematch`
     '''
     def __init__(self, *args, **kwargs):
         '''
         Parameters
         ----------
 
-        matcher : libertem.analysis.gridmatching.Matcher
-            Instance of :class:`~libertem.analysis.gridmatching.Matcher`
+        matcher : libertem_blobfinder.common.gridmatching.Matcher
+            Instance of :class:`~libertem_blobfinder.common.gridmatching.Matcher`
         indices : numpy.ndarray
             List of indices [(h1, k1), (h2, k2), ...] of all peaks. The indices can be
             non-integer and relative to any base vectors, including virtual ones like
             (1, 0); (0, 1). See documentation of
-            :meth:`~libertem.analysis.gridmatching.Matcher.affinematch` for details.
+            :meth:`~libertem_blobfinder.common.gridmatching.Matcher.affinematch` for details.
         '''
         super().__init__(*args, **kwargs)
 
@@ -177,8 +177,9 @@ def run_refine(
         Approximate value for "b" vector (y, x) in px.
     match_pattern : MatchPattern
         Instance of :class:`~MatchPattern`
-    matcher : libertem.analysis.gridmatching.Matcher
-        Instance of :class:`~libertem.analysis.gridmatching.Matcher` to perform the matching
+    matcher : libertem_blobfinder.common.gridmatching.Matcher
+        Instance of :class:`~libertem_blobfinder.common.gridmatching.Matcher`
+        to perform the matching
     correlation : {'fast', 'sparse', 'fullframe'}, optional
         'fast', 'sparse' or 'fullframe' to select :class:`~FastCorrelationUDF`,
         :class:`~SparseCorrelationUDF` or :class:`~FullFrameCorrelationUDF`
