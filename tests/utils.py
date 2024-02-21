@@ -2,7 +2,7 @@ import numpy as np
 
 
 from libertem.masks import to_dense
-from libertem.analysis.gridmatching import calc_coords
+from libertem_blobfinder.common.gridmatching import calc_coords
 
 
 def _naive_mask_apply(masks, data):

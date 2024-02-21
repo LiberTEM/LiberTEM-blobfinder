@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-import libertem.analysis.gridmatching as grm
+import libertem_blobfinder.common.gridmatching as grm
 
 
 def visualize_frame(ctx, ds, result, indices, r, y, x, axes, colors=None, stretch=10):

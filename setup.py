@@ -84,6 +84,7 @@ setup(
     ],
     extras_require={
         'pyfftw': 'pyfftw',
+        'hdbscan': 'hdbscan',
         'common': ['libertem>=0.4.0,<1', 'scikit-image'],
         'udf': ['libertem>=0.5.0,<1', 'scikit-image', 'matplotlib'],
     },

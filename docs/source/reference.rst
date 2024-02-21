@@ -38,6 +38,21 @@ be used without the LiberTEM core infrastructure.
    :members: 
    :special-members: __init__
 
+.. _`matching api`:
+
+Matching
+~~~~~~~~
+
+These modules contain classes and helper functions that extract and manipulate lattices from correlation results.
+
+.. automodule:: libertem_blobfinder.common.gridmatching
+   :members:
+   :show-inheritance:
+
+.. automodule:: libertem_blobfinder.common.fullmatch
+   :members:
+   :show-inheritance:
+
 .. _`blobfinder udf`:
 
 User-defined functions
