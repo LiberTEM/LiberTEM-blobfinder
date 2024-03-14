@@ -364,7 +364,7 @@ def run_fastcorrelation(
     upsample : Union[bool, int], optional
         Whether to use upsampling DFT for refinement. False to deactivate (default) or a positive
         integer >1 to upsample by this factor when refining the correlation peak positions. Upsample
-        True will choose a sensible upmsapling factor.
+        True will choose a sensible upsampling factor.
     kwargs : passed through to :meth:`~libertem.api.Context.run_udf`
 
     Returns
