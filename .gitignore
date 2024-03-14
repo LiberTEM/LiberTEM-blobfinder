@@ -25,3 +25,4 @@ data
 *Thumbs.db
 *.DS_Store
 *.idea
+_baked_revision.py
