@@ -17,7 +17,7 @@ jobs:
   tests:
     strategy:
       matrix:
-        python_version: ["3.7", "3.9", "3.10", "3.11", "3.12"]
+        python_version: ["3.9", "3.10", "3.11", "3.12"]
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
@@ -28,7 +28,7 @@ jobs:
           python-version: '${{ matrix.python_version }}'
           cache: 'pip'
       - name: install tox
-        run: python3 -m pip install tox
+        run: python3 -m pip install tox tox-uv
       - name: run tox
         run: tox -e 'py${{ matrix.python_version }}'
       - name: submit code coverage
@@ -50,7 +50,7 @@ jobs:
           cache: 'pip'
       - run: sudo apt-get install -y pandoc
       - name: install tox
-        run: python3 -m pip install tox
+        run: python3 -m pip install tox tox-uv
       - name: 'run tox for environment ${{ matrix.envs }}'
         run: tox -e '${{ matrix.envs }}'
       - name: submit code coverage
@@ -69,7 +69,7 @@ jobs:
           cache: 'pip'
       - run: sudo apt-get install -y pandoc
       - name: install tox
-        run: python3 -m pip install tox
+        run: python3 -m pip install tox tox-uv
       - name: 'run tox for docs-build-ci'
         run: tox -e 'docs-build-ci'
       - uses: actions/upload-pages-artifact@v3.0.1
