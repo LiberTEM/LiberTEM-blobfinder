@@ -26,3 +26,12 @@ automated fashion.
 .. toctree::
 
    strainmap-poly
+
+Upsampling refinement
+~~~~~~~~~~~~~~~~~~~~~
+
+This example shows the usage of upsampling refinement to improve precision on data with small shifts.
+
+.. toctree::
+
+   upsampling
