@@ -379,7 +379,9 @@ def run_fastcorrelation(
     return ctx.run_udf(dataset=dataset, udf=udf, **kwargs)
 
 
-def run_blobfinder(ctx, dataset, match_pattern: MatchPattern, num_peaks, roi=None, progress=False):
+def run_blobfinder(
+    ctx, dataset, match_pattern: MatchPattern, num_peaks, roi=None, upsample=False, progress=False
+):
     """
     Wrapper function to find peaks in a dataset and refine their position using
     :class:`FastCorrelationUDF`
@@ -393,6 +395,10 @@ def run_blobfinder(ctx, dataset, match_pattern: MatchPattern, num_peaks, roi=Non
         Number of peaks to look for
     roi : numpy.ndarray, optional
         Boolean mask of the navigation dimension to select region of interest (ROI)
+    upsample : Union[bool, int], optional
+        Whether to use upsampling DFT for refinement. False to deactivate (default) or a positive
+        integer >1 to upsample by this factor when refining the correlation peak positions. Upsample
+        True will choose a sensible upsampling factor.
     progress : bool, optional
         Show progress bar
 
@@ -405,6 +411,9 @@ def run_blobfinder(ctx, dataset, match_pattern: MatchPattern, num_peaks, roi=Non
     peaks : numpy.ndarray
         List of found peaks with (y, x) coordinates
     """
+    if upsample is True:
+        upsample = 20
+
     sum_analysis = ctx.create_sum_analysis(dataset=dataset)
     sum_result = ctx.run(sum_analysis, roi=roi)
 
@@ -421,6 +430,7 @@ def run_blobfinder(ctx, dataset, match_pattern: MatchPattern, num_peaks, roi=Non
         peaks=peaks,
         match_pattern=match_pattern,
         roi=roi,
+        upsample=upsample,
         progress=progress
     )
 

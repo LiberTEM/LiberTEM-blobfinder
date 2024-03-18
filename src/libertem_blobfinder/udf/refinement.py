@@ -150,7 +150,8 @@ class AffineMixin(RefinementMixin):
 
 def run_refine(
         ctx, dataset, zero, a, b, match_pattern: MatchPattern, matcher: grm.Matcher,
-        correlation='fast', match='fast', indices=None, steps=5, zero_shift=None, **kwargs):
+        correlation='fast', match='fast', indices=None, steps=5, zero_shift=None,
+        upsample=False, **kwargs):
     '''
     Wrapper function to refine the given lattice for each frame by calculating
     approximate peak positions and refining them for each frame using a
@@ -201,6 +202,12 @@ def run_refine(
         Zero shift, for example descan error. Can be :code:`None`, :code:`numpy.array((y, x))`
         or AUX data with :code:`(y, x)` for each frame. Only supported for correlation methods
         :code:`fast` and `fullframe`.
+    upsample: Union[bool, int], optional
+        Use DFT upsampling for the refinement step, by default False. Supplying
+        True will choose a reasonable default upsampling factor, while any
+        positive integer > 1 will upsample the correlation peak by this factor.
+        DFT upsampling can provide more accurate center values, especially when
+        peak shifts are small, but does require more computation time.
     kwargs : passed through to :meth:`~libertem.api.Context.run_udf`
 
     Returns
@@ -231,6 +238,9 @@ def run_refine(
     '''
     if indices is None:
         indices = np.mgrid[-10:11, -10:11]
+
+    if upsample is True:
+        upsample = 20
 
     (fy, fx) = tuple(dataset.shape.sig)
 
@@ -275,6 +285,7 @@ def run_refine(
         matcher=matcher,
         steps=steps,
         zero_shift=zero_shift,
+        upsample=upsample,
     )
 
     result = ctx.run_udf(
