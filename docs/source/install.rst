@@ -21,12 +21,11 @@ can be installed with
 
 .. code-block:: shell
 
-    $ pip install libertem-blobfinder[pyfftw,common,udf]
+    $ pip install libertem-blobfinder[common,udf]
 
 The extra :code:`common` installs dependencies for
 :mod:`libertem_blobfinder.common`, and :code:`udf` for
-:mod:`libertem_blobfinder.udf`. LiberTEM-blobfinder can optionally use PyFFTW
-instead of the built-in NumPy FFT for fast Fourier transforms.
+:mod:`libertem_blobfinder.udf`.
 
 Please note that this package is part of a `larger restructuring effort for
 LiberTEM <https://github.com/LiberTEM/LiberTEM/issues/261>`_. That means changes

@@ -40,7 +40,6 @@ authors = [
 udf = ["libertem>=0.4.0,<1", "scikit-image", "matplotlib"]
 common = ["libertem>=0.4.0,<1", "scikit-image"]
 hdbscan = ["hdbscan"]
-pyfftw = ["pyfftw"]
 
 [project.urls]
 Repository = "https://github.com/LiberTEM/LiberTEM-blobfinder"

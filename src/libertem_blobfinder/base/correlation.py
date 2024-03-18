@@ -6,20 +6,8 @@ import numpy.typing as npt
 import numba
 
 
-# FIXME There's work on flexible FFT backends in scipy
-# https://github.com/scipy/scipy/wiki/GSoC-2019-project-ideas#revamp-scipyfftpack
-# and discussions about pyfftw performance vs other implementations
-# https://github.com/pyFFTW/pyFFTW/issues/264
-# For that reason we shoud review the state of Python FFT implementations
-# regularly and adapt our choices accordingly
-try:
-    import pyfftw
-    fft = pyfftw.interfaces.numpy_fft
-    pyfftw.interfaces.cache.enable()
-    zeros = pyfftw.zeros_aligned
-except ImportError:
-    fft = np.fft
-    zeros = np.zeros
+fft = np.fft
+zeros = np.zeros
 
 # Necessary to work with JIT disabled for coverage and testing purposes
 # https://github.com/LiberTEM/LiberTEM/issues/539
@@ -464,7 +452,7 @@ def process_frame_fast(template, crop_size, frame, peaks,
     out_elevations : np.ndarray
         Output buffer for peak elevation in log scaled frame. Shape (n_peaks, ) and float dtype.
     crop_bufs : np.ndarray
-        Aligned buffer for pyfftw. Shape (n, 2 * crop_size, 2 * crop_size) and float dtype.
+        Temporary buffers for cropping. Shape (n, 2 * crop_size, 2 * crop_size) and float dtype.
         n doesn't have to match the number of peaks. Instead, it should be chosen for good L3 cache
         efficiency. :meth:`allocate_crop_bufs` can be used to allocate this buffer.
     upsample : Union[bool, int], optional
@@ -571,7 +559,7 @@ def process_frame_full(template, crop_size, frame, peaks,
         Output buffer for peak elevation in log scaled frame. Shape (n_peaks, ) and float dtype.
         Will be allocated if needed.
     frame_buf : np.ndarray
-        Aligned buffer for FFT back-end, such as pyfftw. Shape of a frame and float dtype.
+        Temporary buffer for the FFT back-end. Shape of a frame and float dtype.
         :meth:`libertem_blobfinder.base.correlation.zero` can be used.
     buf_count : int
         Number of peaks to process per outer loop iteration. This allows optimization of L3 cache

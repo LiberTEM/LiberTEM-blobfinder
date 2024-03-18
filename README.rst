@@ -17,7 +17,7 @@ The quick version from PyPI:
 
 .. code-block:: shell
 
-    $ pip install libertem-blobfinder[pyfftw]
+    $ pip install libertem-blobfinder[udf]
 
 See `full installation instructions
 <https://libertem.github.io/LiberTEM-blobfinder/install.html>`_ for more
