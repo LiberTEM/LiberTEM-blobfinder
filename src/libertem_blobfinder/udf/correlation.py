@@ -139,7 +139,7 @@ class FastCorrelationUDF(CorrelationUDF):
             crop_function = ltbc.crop_disks_from_frame_slicing
         elif self.meta.array_backend in (self.BACKEND_NUMPY, ):
             crop_function = ltbc.crop_disks_from_frame
-        else:
+        else:  # pragma: no cover
             raise RuntimeError(f"Unsupported array backend {self.meta.array_backend}")
 
         kwargs = {
@@ -326,7 +326,7 @@ class SparseCorrelationUDF(CorrelationUDF):
             backend = 'numpy'
         elif self.meta.array_backend in sparseconverter.CUDA_BACKENDS:
             backend = 'cupy'
-        else:
+        else:  # pragma: no cover
             raise ValueError("Unknown device class")
         if self.meta.array_backend == self.BACKEND_SPARSE_COO:
             use_sparse = 'sparse.pydata'
@@ -334,7 +334,7 @@ class SparseCorrelationUDF(CorrelationUDF):
             use_sparse = 'sparse.pydata.GCXS'
         elif self.meta.array_backend in (self.BACKEND_CUPY, self.BACKEND_NUMPY):
             use_sparse = 'scipy.sparse.csc'
-        else:
+        else:  # pragma: no cover
             raise RuntimeError(f'Unsupported array backend {self.meta.array_backend}')
         # CSC matrices in combination with transposed data are fastest
         container = MaskContainer(mask_factories=stack, dtype=np.float32,
