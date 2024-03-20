@@ -543,8 +543,17 @@ def process_frame_fast(
             out_crop_bufs=crop_bufs[:size]
         )
         log_scale_cropbufs_inplace(crop_bufs[:size])
-        corrs, corrspecs = sparseconverter.for_backend(
-            do_correlations(template, crop_bufs[:size], with_specs=True),
+        corrs, corrspecs = do_correlations(
+            template,
+            crop_bufs[:size],
+            with_specs=True
+        )
+        corrs = sparseconverter.for_backend(
+            corrs,
+            sparseconverter.NUMPY,
+        )
+        corrspecs = sparseconverter.for_backend(
+            corrspecs,
             sparseconverter.NUMPY,
         )
         evaluate_correlations(
