@@ -37,8 +37,8 @@ authors = [
 ]
 
 [project.optional-dependencies]
-udf = ["libertem>=0.4.0,<1", "scikit-image", "matplotlib"]
-common = ["libertem>=0.4.0,<1", "scikit-image"]
+udf = ["libertem>=0.12.0,<1", "scikit-image", "matplotlib"]
+common = ["libertem>=0.12.0,<1", "scikit-image"]
 hdbscan = ["hdbscan"]
 
 [project.urls]
