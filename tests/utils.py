@@ -56,13 +56,6 @@ def _fullgrid(zero, a, b, index, skip_zero=False):
     return calc_coords(zero, a, b, indices)
 
 
-def assert_msg(msg, msg_type, status='ok'):
-    print(msg, msg_type, status)
-    assert msg['status'] == status
-    assert msg['messageType'] == msg_type,\
-        "expected: {}, is: {}".format(msg_type, msg['messageType'])
-
-
 @contextmanager
 def set_device_class(device_class):
     '''
