@@ -210,7 +210,7 @@ def do_correlations(template, crop_parts, with_specs: bool = False):
         The FFT correlation maps before inversion, returned only
         if with_specs is True.
     '''
-    spec_parts = np.fft.rfft2(crop_parts)
+    spec_parts = fft.rfft2(crop_parts)
     corrspecs = template * spec_parts
     corrs = fft.ifftshift(
         fft.irfft2(
