@@ -219,14 +219,26 @@ class FullFrameCorrelationUDF(CorrelationUDF):
         ""
         mask = self.get_pattern()
         n_peaks = len(self.params.peaks)
-        template = mask.get_template(sig_shape=self.meta.dataset_shape.sig)
+        template = self.xp.array(mask.get_template(sig_shape=self.meta.dataset_shape.sig))
         dtype = np.result_type(self.meta.input_dtype, np.float32)
-        frame_buf = ltbc.zeros(shape=self.meta.dataset_shape.sig, dtype=dtype)
+        frame_buf = self.xp.array(
+            ltbc.zeros(shape=self.meta.dataset_shape.sig, dtype=dtype)
+        )
         crop_size = mask.get_crop_size()
+
+        if self.meta.array_backend in (
+                self.BACKEND_SPARSE_COO, self.BACKEND_SPARSE_GCXS, self.BACKEND_CUPY):
+            crop_function = ltbc.crop_disks_from_frame_slicing
+        elif self.meta.array_backend in (self.BACKEND_NUMPY, ):
+            crop_function = ltbc.crop_disks_from_frame
+        else:  # pragma: no cover
+            raise RuntimeError(f"Unsupported array backend {self.meta.array_backend}")
+
         kwargs = {
             'template': template,
             'frame_buf': frame_buf,
             'buf_count': ltbc.get_buf_count(crop_size, n_peaks, dtype, self.limit),
+            'crop_function': crop_function,
         }
         return kwargs
 
@@ -251,6 +263,15 @@ class FullFrameCorrelationUDF(CorrelationUDF):
             frame_buf=self.task_data.frame_buf,
             buf_count=self.task_data.buf_count,
             upsample=self.params.get('upsample', False),
+            crop_function=self.task_data.crop_function,
+        )
+
+    def get_backends(self):
+        # At this time cannot FFT on a full sparse frame so not
+        # specifying sparse backends to trigger auto-densification
+        return (
+            self.BACKEND_NUMPY,
+            self.BACKEND_CUPY,
         )
 
 
