@@ -17,6 +17,7 @@ import libertem_blobfinder.udf.refinement
 import libertem_blobfinder.udf.correlation
 import libertem_blobfinder.udf.integration
 import libertem_blobfinder.udf.utils  # noqa F401
+from libertem_blobfinder.udf.refinement import run_refine
 
 from utils import _mk_random, set_device_class
 
@@ -45,9 +46,9 @@ def test_smoke(lt_ctx, progress):
     )
 )
 @pytest.mark.parametrize(
-    "progress", [True, False]
+    'upsample', (True, False)
 )
-def test_run_refine_fastmatch(lt_ctx, progress, backend):
+def test_run_refine_fastmatch(lt_ctx, backend, upsample):
     with set_device_class(get_device_class(backend)):
         shape = np.array([128, 128])
         zero = shape / 2 + np.random.uniform(-1, 1, size=2)
@@ -94,7 +95,7 @@ def test_run_refine_fastmatch(lt_ctx, progress, backend):
 
         for match_pattern in match_patterns:
             print("refining using template %s" % type(match_pattern))
-            (res, real_indices) = udf.refinement.run_refine(
+            (res, real_indices) = run_refine(
                 ctx=lt_ctx,
                 dataset=dataset,
                 zero=zero + np.random.uniform(-1, 1, size=2),
@@ -102,7 +103,7 @@ def test_run_refine_fastmatch(lt_ctx, progress, backend):
                 b=b + np.random.uniform(-1, 1, size=2),
                 matcher=matcher,
                 match_pattern=match_pattern,
-                progress=progress
+                upsample=upsample,
             )
             print(peaks - grm.calc_coords(
                 res['zero'].data[0],
@@ -111,9 +112,9 @@ def test_run_refine_fastmatch(lt_ctx, progress, backend):
                 indices)
             )
 
-            assert np.allclose(res['zero'].data[0], zero, atol=0.5)
-            assert np.allclose(res['a'].data[0], a, atol=0.2)
-            assert np.allclose(res['b'].data[0], b, atol=0.2)
+            assert_allclose(res['zero'].data[0], zero, atol=0.5)
+            assert_allclose(res['a'].data[0], a, atol=0.2)
+            assert_allclose(res['b'].data[0], b, atol=0.2)
 
 
 def test_run_refine_affinematch(lt_ctx):
@@ -145,7 +146,7 @@ def test_run_refine_affinematch(lt_ctx):
                 aa = np.array([1, 0]) + np.random.uniform(-0.05, 0.05, size=2)
                 bb = np.array([0, 1]) + np.random.uniform(-0.05, 0.05, size=2)
 
-                (res, real_indices) = udf.refinement.run_refine(
+                (res, real_indices) = run_refine(
                     ctx=lt_ctx,
                     dataset=dataset,
                     zero=zzero,
@@ -157,9 +158,9 @@ def test_run_refine_affinematch(lt_ctx):
                     match='affine'
                 )
 
-                assert np.allclose(res['zero'].data[0], zero, atol=0.5)
-                assert np.allclose(res['a'].data[0], [1, 0], atol=0.05)
-                assert np.allclose(res['b'].data[0], [0, 1], atol=0.05)
+                assert_allclose(res['zero'].data[0], zero, atol=0.5)
+                assert_allclose(res['a'].data[0], [1, 0], atol=0.05)
+                assert_allclose(res['b'].data[0], [0, 1], atol=0.05)
         except Exception:
             print("zero = np.array([%s, %s])" % tuple(zero))
             print("a = np.array([%s, %s])" % tuple(a))
@@ -204,7 +205,7 @@ def test_run_refine_sparse(lt_ctx, backend):
         print("a: ", a)
         print("b: ", b)
 
-        (res, real_indices) = udf.refinement.run_refine(
+        (res, real_indices) = run_refine(
             ctx=lt_ctx,
             dataset=dataset,
             zero=zero + np.random.uniform(-0.5, 0.5, size=2),
@@ -223,12 +224,15 @@ def test_run_refine_sparse(lt_ctx, backend):
             indices)
         )
 
-        assert np.allclose(res['zero'].data[0], zero, atol=0.5)
-        assert np.allclose(res['a'].data[0], a, atol=0.2)
-        assert np.allclose(res['b'].data[0], b, atol=0.2)
+        assert_allclose(res['zero'].data[0], zero, atol=0.5)
+        assert_allclose(res['a'].data[0], a, atol=0.2)
+        assert_allclose(res['b'].data[0], b, atol=0.2)
 
 
-def test_run_refine_fullframe(lt_ctx):
+@pytest.mark.parametrize(
+    'upsample', (True, False)
+)
+def test_run_refine_fullframe(lt_ctx, upsample):
     shape = np.array([128, 128])
     zero = shape / 2 + np.random.uniform(-1, 1, size=2)
     a = np.array([27.17, 0.]) + np.random.uniform(-1, 1, size=2)
@@ -250,7 +254,7 @@ def test_run_refine_fullframe(lt_ctx):
     print("a: ", a)
     print("b: ", b)
 
-    (res, real_indices) = udf.refinement.run_refine(
+    (res, real_indices) = run_refine(
         ctx=lt_ctx,
         dataset=dataset,
         zero=zero + np.random.uniform(-0.5, 0.5, size=2),
@@ -259,6 +263,7 @@ def test_run_refine_fullframe(lt_ctx):
         matcher=matcher,
         match_pattern=match_pattern,
         correlation='fullframe',
+        upsample=upsample,
     )
 
     print(peaks - grm.calc_coords(
@@ -268,9 +273,9 @@ def test_run_refine_fullframe(lt_ctx):
         indices)
     )
 
-    assert np.allclose(res['zero'].data[0], zero, atol=0.5)
-    assert np.allclose(res['a'].data[0], a, atol=0.2)
-    assert np.allclose(res['b'].data[0], b, atol=0.2)
+    assert_allclose(res['zero'].data[0], zero, atol=0.5)
+    assert_allclose(res['a'].data[0], a, atol=0.5)
+    assert_allclose(res['b'].data[0], b, atol=0.5)
 
 
 @pytest.mark.with_numba
@@ -322,7 +327,7 @@ def test_run_refine_blocktests(lt_ctx, cls):
         print(res['refineds'].data[0])
         print(peaks)
         print(peaks - res['refineds'].data[0])
-        assert np.allclose(res['refineds'].data[0], peaks, atol=0.5)
+        assert_allclose(res['refineds'].data[0], peaks, atol=0.5)
 
 
 @pytest.mark.with_numba
@@ -492,14 +497,15 @@ def test_visualize_smoke(navshape, lt_ctx):
     print("a: ", a)
     print("b: ", b)
 
-    (res, real_indices) = udf.refinement.run_refine(
+    (res, real_indices) = run_refine(
         ctx=lt_ctx,
         dataset=dataset,
         zero=zero + np.random.uniform(-1, 1, size=2),
         a=a + np.random.uniform(-1, 1, size=2),
         b=b + np.random.uniform(-1, 1, size=2),
         matcher=matcher,
-        match_pattern=match_pattern
+        match_pattern=match_pattern,
+        progress=True,
     )
 
     fig, axes = plt.subplots()
@@ -552,7 +558,7 @@ def test_run_refine_fastmatch_zeroshift(lt_ctx):
     for match_pattern in match_patterns:
         print("refining using template %s" % type(match_pattern))
         zero_shift = np.array([(0., 0.), shift]).astype(np.float32)
-        (res, real_indices) = udf.refinement.run_refine(
+        (res, real_indices) = run_refine(
             ctx=lt_ctx,
             dataset=dataset,
             zero=zero + np.random.uniform(-1, 1, size=2),
@@ -576,10 +582,10 @@ def test_run_refine_fastmatch_zeroshift(lt_ctx):
             indices_1)
         )
 
-        assert np.allclose(res['zero'].data[0], zero, atol=0.5)
-        assert np.allclose(res['zero'].data[1], zero + shift, atol=0.5)
-        assert np.allclose(res['a'].data, a, atol=0.2)
-        assert np.allclose(res['b'].data, b, atol=0.2)
+        assert_allclose(res['zero'].data[0], zero, atol=0.5)
+        assert_allclose(res['zero'].data[1], zero + shift, atol=0.5)
+        assert_allclose(res['a'].data, np.tile(a[np.newaxis, :], (2, 1)), atol=0.2)
+        assert_allclose(res['b'].data, np.tile(b[np.newaxis, :], (2, 1)), atol=0.2)
 
 
 def test_integration(lt_ctx):
@@ -635,5 +641,5 @@ def test_integration(lt_ctx):
     res = lt_ctx.run_udf(udf=udf, dataset=ds)
 
     # Make sure the integration result matches exactly the sum of one peak
-    assert np.allclose(ref_frame.sum(), res['integration'].data)
+    assert_allclose(ref_frame.sum(), res['integration'].data)
     assert res['integration'].data.shape == peaks.shape[:-1]
