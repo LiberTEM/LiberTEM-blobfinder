@@ -571,7 +571,8 @@ def process_frame_fast(
 
 def process_frame_full(template, crop_size, frame, peaks,
         out_centers=None, out_refineds=None, out_heights=None, out_elevations=None,
-        frame_buf=None, buf_count=None, upsample: Union[bool, int] = False):
+        frame_buf=None, buf_count=None, upsample: Union[bool, int] = False,
+        crop_function=crop_disks_from_frame):
     '''
     Find the parameters of peaks in a diffraction pattern by correlation with a template
 
@@ -666,6 +667,14 @@ def process_frame_full(template, crop_size, frame, peaks,
         ),
         axes=(-2, -1),
     )
+    corr = sparseconverter.for_backend(
+        corr,
+        sparseconverter.NUMPY,
+    )
+    corrspec = sparseconverter.for_backend(
+        corrspec,
+        sparseconverter.NUMPY,
+    )
     crop_shape = (2 * crop_size, 2 * crop_size)
     crop_bufs = np.zeros((buf_count, *crop_shape), dtype=corr.dtype)
     block_count = (len(peaks) - 1) // buf_count + 1
@@ -673,7 +682,7 @@ def process_frame_full(template, crop_size, frame, peaks,
         start = block * buf_count
         stop = min(len(peaks), (block + 1) * buf_count)
         size = stop - start
-        crop_disks_from_frame_slicing(
+        crop_function(
             peaks=peaks[start:stop], frame=corr, crop_size=crop_size,
             out_crop_bufs=crop_bufs[:size]
         )
