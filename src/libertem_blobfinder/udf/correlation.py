@@ -1,6 +1,7 @@
 import functools
 
 import numpy as np
+import sparseconverter
 
 from libertem.udf import UDF
 import libertem.masks as masks
@@ -128,12 +129,23 @@ class FastCorrelationUDF(CorrelationUDF):
         n_peaks = len(self.get_peaks())
         mask = self.get_pattern()
         crop_size = mask.get_crop_size()
-        template = mask.get_template(sig_shape=(2 * crop_size, 2 * crop_size))
+        template = self.xp.array(mask.get_template(sig_shape=(2 * crop_size, 2 * crop_size)))
         dtype = np.result_type(self.meta.input_dtype, np.float32)
-        crop_bufs = ltbc.allocate_crop_bufs(crop_size, n_peaks, dtype=dtype, limit=self.limit)
+        crop_bufs = ltbc.allocate_crop_bufs(
+            crop_size, n_peaks, dtype=dtype, limit=self.limit, xp=self.xp
+        )
+        if self.meta.array_backend in (
+                self.BACKEND_SPARSE_COO, self.BACKEND_SPARSE_GCXS, self.BACKEND_CUPY):
+            crop_function = ltbc.crop_disks_from_frame_slicing
+        elif self.meta.array_backend in (self.BACKEND_NUMPY, ):
+            crop_function = ltbc.crop_disks_from_frame
+        else:  # pragma: no cover
+            raise RuntimeError(f"Unsupported array backend {self.meta.array_backend}")
+
         kwargs = {
             'crop_bufs': crop_bufs,
             'template': template,
+            'crop_function': crop_function,
         }
         return kwargs
 
@@ -151,7 +163,17 @@ class FastCorrelationUDF(CorrelationUDF):
             frame=frame, peaks=self.get_peaks() + np.round(self.get_zero_shift()).astype(int),
             out_centers=centers, out_refineds=refineds,
             out_heights=peak_values, out_elevations=peak_elevations,
-            crop_bufs=self.task_data.crop_bufs, upsample=self.params.get('upsample', False)
+            crop_bufs=self.task_data.crop_bufs,
+            upsample=self.params.get('upsample', False),
+            crop_function=self.task_data.crop_function,
+        )
+
+    def get_backends(self):
+        return (
+            self.BACKEND_NUMPY,
+            self.BACKEND_CUPY,
+            self.BACKEND_SPARSE_COO,
+            self.BACKEND_SPARSE_GCXS,
         )
 
 
@@ -197,14 +219,26 @@ class FullFrameCorrelationUDF(CorrelationUDF):
         ""
         mask = self.get_pattern()
         n_peaks = len(self.params.peaks)
-        template = mask.get_template(sig_shape=self.meta.dataset_shape.sig)
+        template = self.xp.array(mask.get_template(sig_shape=self.meta.dataset_shape.sig))
         dtype = np.result_type(self.meta.input_dtype, np.float32)
-        frame_buf = ltbc.zeros(shape=self.meta.dataset_shape.sig, dtype=dtype)
+        frame_buf = self.xp.array(
+            ltbc.zeros(shape=self.meta.dataset_shape.sig, dtype=dtype)
+        )
         crop_size = mask.get_crop_size()
+
+        if self.meta.array_backend in (
+                self.BACKEND_SPARSE_COO, self.BACKEND_SPARSE_GCXS, self.BACKEND_CUPY):
+            crop_function = ltbc.crop_disks_from_frame_slicing
+        elif self.meta.array_backend in (self.BACKEND_NUMPY, ):
+            crop_function = ltbc.crop_disks_from_frame
+        else:  # pragma: no cover
+            raise RuntimeError(f"Unsupported array backend {self.meta.array_backend}")
+
         kwargs = {
             'template': template,
             'frame_buf': frame_buf,
             'buf_count': ltbc.get_buf_count(crop_size, n_peaks, dtype, self.limit),
+            'crop_function': crop_function,
         }
         return kwargs
 
@@ -229,6 +263,15 @@ class FullFrameCorrelationUDF(CorrelationUDF):
             frame_buf=self.task_data.frame_buf,
             buf_count=self.task_data.buf_count,
             upsample=self.params.get('upsample', False),
+            crop_function=self.task_data.crop_function,
+        )
+
+    def get_backends(self):
+        # At this time cannot FFT on a full sparse frame so not
+        # specifying sparse backends to trigger auto-densification
+        return (
+            self.BACKEND_NUMPY,
+            self.BACKEND_CUPY,
         )
 
 
@@ -300,9 +343,23 @@ class SparseCorrelationUDF(CorrelationUDF):
             imageSizeX=self.meta.dataset_shape.sig[1],
             imageSizeY=self.meta.dataset_shape.sig[0]
         )
+        if self.meta.array_backend in sparseconverter.CPU_BACKENDS:
+            backend = 'numpy'
+        elif self.meta.array_backend in sparseconverter.CUDA_BACKENDS:
+            backend = 'cupy'
+        else:  # pragma: no cover
+            raise ValueError("Unknown device class")
+        if self.meta.array_backend == self.BACKEND_SPARSE_COO:
+            use_sparse = 'sparse.pydata'
+        elif self.meta.array_backend == self.BACKEND_SPARSE_GCXS:
+            use_sparse = 'sparse.pydata.GCXS'
+        elif self.meta.array_backend in (self.BACKEND_CUPY, self.BACKEND_NUMPY):
+            use_sparse = 'scipy.sparse.csc'
+        else:  # pragma: no cover
+            raise RuntimeError(f'Unsupported array backend {self.meta.array_backend}')
         # CSC matrices in combination with transposed data are fastest
         container = MaskContainer(mask_factories=stack, dtype=np.float32,
-            use_sparse='scipy.sparse.csc')
+            use_sparse=use_sparse, backend=backend)
 
         kwargs = {
             'mask_container': container,
@@ -313,14 +370,10 @@ class SparseCorrelationUDF(CorrelationUDF):
     def process_tile(self, tile):
         tile_slice = self.meta.slice
         c = self.task_data.mask_container
-        tile_t = np.zeros(
-            (np.prod(tile.shape[1:]), tile.shape[0]),
-            dtype=tile.dtype
-        )
-        ltbc.log_scale(tile.reshape((tile.shape[0], -1)).T, out=tile_t)
+        tile_t = ltbc.log_scale(tile.reshape((tile.shape[0], -1)).T, out=None)
 
         sl = c.get(key=tile_slice, transpose=False)
-        self.results.corr[:] += sl.dot(tile_t).T
+        self.results.corr[:] += self.forbuf(sl.dot(tile_t).T, self.results.corr)
 
     def postprocess(self):
         """
@@ -343,6 +396,14 @@ class SparseCorrelationUDF(CorrelationUDF):
                 out_centers=centers[f], out_refineds=refineds[f],
                 out_heights=peak_values[f], out_elevations=peak_elevations[f]
             )
+
+    def get_backends(self):
+        return (
+            self.BACKEND_NUMPY,
+            self.BACKEND_CUPY,
+            self.BACKEND_SPARSE_COO,
+            self.BACKEND_SPARSE_GCXS
+        )
 
 
 def run_fastcorrelation(

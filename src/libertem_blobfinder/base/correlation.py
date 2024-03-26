@@ -4,6 +4,7 @@ from typing import Union, Tuple
 import numpy as np
 import numpy.typing as npt
 import numba
+import sparseconverter
 
 
 fft = np.fft
@@ -140,7 +141,7 @@ def refine_center(center, r, corrmap):
 
 
 @numba.njit
-def peak_elevation(center, corrmap, height, r_min=1.5, r_max=float('inf')):
+def peak_elevation(center, corrmap, height, r_min=1.5, r_max=np.inf):
     '''
     Return the slope of the tightest cone around :code:`center` with height :code:`height`
     that touches :code:`corrmap` between :code:`r_min` and :code:`r_max`.
@@ -352,6 +353,41 @@ def crop_disks_from_frame(peaks, frame, crop_size, out_crop_bufs):
                     out_crop_bufs[i, y, x] = frame[yy, xx]
 
 
+def crop_disks_from_frame_slicing(peaks, frame, crop_size, out_crop_bufs):
+
+    def frame_coord_y(peak, y):
+        return y + peak[0] - crop_size
+
+    def frame_coord_x(peak, x):
+        return x + peak[1] - crop_size
+
+    fy, fx = frame.shape
+    target_backend = sparseconverter.get_backend(out_crop_bufs)
+    for i in range(len(peaks)):
+        peak = peaks[i]
+        origin_y = frame_coord_y(peak, 0)
+        origin_x = frame_coord_x(peak, 0)
+        end_y = frame_coord_y(peak, out_crop_bufs.shape[1])
+        end_x = frame_coord_x(peak, out_crop_bufs.shape[2])
+        skip_y = max(-origin_y, 0)
+        skip_x = max(-origin_x, 0)
+
+        cut_y = fy - end_y
+        if cut_y >= 0:
+            cut_y = None
+        cut_x = fx - end_x
+        if cut_x >= 0:
+            cut_x = None
+
+        out_crop_bufs[i, skip_y:cut_y, skip_x:cut_x] = sparseconverter.for_backend(
+            frame[
+                max(origin_y, 0):max(end_y, 0),
+                max(origin_x, 0):max(end_x, 0)
+            ],
+            target_backend
+        )
+
+
 @numba.njit
 def _shift(relative_center, anchor, crop_size):
     return relative_center + anchor - np.array((crop_size, crop_size))
@@ -387,7 +423,7 @@ def get_buf_count(crop_size, n_peaks, dtype, limit=2**19):
     return min(max(1, limit // full_size), n_peaks)
 
 
-def allocate_crop_bufs(crop_size, n_peaks, dtype, limit=2**19):
+def allocate_crop_bufs(crop_size, n_peaks, dtype, limit=2**19, xp=np):
     '''
     Allocate buffer for stack of cropped peaks
 
@@ -411,13 +447,16 @@ def allocate_crop_bufs(crop_size, n_peaks, dtype, limit=2**19):
         Shape (n, 2*crop_size, 2*crop_size)
     '''
     buf_count = get_buf_count(crop_size, n_peaks, dtype, limit)
-    crop_bufs = zeros((buf_count, 2 * crop_size, 2 * crop_size), dtype=dtype)
+    crop_bufs = xp.zeros((buf_count, 2 * crop_size, 2 * crop_size), dtype=dtype)
     return crop_bufs
 
 
-def process_frame_fast(template, crop_size, frame, peaks,
-        out_centers, out_refineds, out_heights, out_elevations,
-        crop_bufs, upsample: Union[bool, int] = False):
+def process_frame_fast(
+    template, crop_size, frame, peaks,
+    out_centers, out_refineds, out_heights, out_elevations,
+    crop_bufs, upsample: Union[bool, int] = False,
+    crop_function=crop_disks_from_frame,
+):
     '''
     Find the parameters of peaks in a diffraction pattern by correlation with a template
 
@@ -499,12 +538,24 @@ def process_frame_fast(template, crop_size, frame, peaks,
         start = block * buf_count
         stop = min((block + 1) * buf_count, len(peaks))
         size = stop - start
-        crop_disks_from_frame(
+        crop_function(
             peaks=peaks[start:stop], frame=frame, crop_size=crop_size,
             out_crop_bufs=crop_bufs[:size]
         )
         log_scale_cropbufs_inplace(crop_bufs[:size])
-        corrs, corrspecs = do_correlations(template, crop_bufs[:size], with_specs=True)
+        corrs, corrspecs = do_correlations(
+            template,
+            crop_bufs[:size],
+            with_specs=True
+        )
+        corrs = sparseconverter.for_backend(
+            corrs,
+            sparseconverter.NUMPY,
+        )
+        corrspecs = sparseconverter.for_backend(
+            corrspecs,
+            sparseconverter.NUMPY,
+        )
         evaluate_correlations(
             corrs=corrs, peaks=peaks[start:stop], crop_size=crop_size,
             out_centers=out_centers[start:stop], out_refineds=out_refineds[start:stop],
@@ -520,7 +571,8 @@ def process_frame_fast(template, crop_size, frame, peaks,
 
 def process_frame_full(template, crop_size, frame, peaks,
         out_centers=None, out_refineds=None, out_heights=None, out_elevations=None,
-        frame_buf=None, buf_count=None, upsample: Union[bool, int] = False):
+        frame_buf=None, buf_count=None, upsample: Union[bool, int] = False,
+        crop_function=crop_disks_from_frame):
     '''
     Find the parameters of peaks in a diffraction pattern by correlation with a template
 
@@ -615,6 +667,14 @@ def process_frame_full(template, crop_size, frame, peaks,
         ),
         axes=(-2, -1),
     )
+    corr = sparseconverter.for_backend(
+        corr,
+        sparseconverter.NUMPY,
+    )
+    corrspec = sparseconverter.for_backend(
+        corrspec,
+        sparseconverter.NUMPY,
+    )
     crop_shape = (2 * crop_size, 2 * crop_size)
     crop_bufs = np.zeros((buf_count, *crop_shape), dtype=corr.dtype)
     block_count = (len(peaks) - 1) // buf_count + 1
@@ -622,7 +682,7 @@ def process_frame_full(template, crop_size, frame, peaks,
         start = block * buf_count
         stop = min(len(peaks), (block + 1) * buf_count)
         size = stop - start
-        crop_disks_from_frame(
+        crop_function(
             peaks=peaks[start:stop], frame=corr, crop_size=crop_size,
             out_crop_bufs=crop_bufs[:size]
         )

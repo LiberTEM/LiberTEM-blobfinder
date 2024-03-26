@@ -24,6 +24,11 @@ def test_refinement():
         (0, 2, 0, 0, 0, -10)
     ])
 
+    # r ~= 0 always returns the original center:
+    assert np.allclose(
+        base.correlation.refine_center(center=(42, 42), r=0.0, corrmap=data), (42.0, 42.0)
+    )
+
     assert np.allclose(
         base.correlation.refine_center(center=(1, 1), r=1, corrmap=data), (1, 1)
     )

@@ -3,7 +3,6 @@ from typing import Tuple
 
 import libertem.masks as masks
 
-from libertem_blobfinder.base.correlation import fft
 from skimage.util import crop
 
 
@@ -32,7 +31,7 @@ class MatchPattern:
         raise NotImplementedError
 
     def get_template(self, sig_shape):
-        return fft.rfft2(self.get_mask(sig_shape))
+        return np.fft.rfft2(self.get_mask(sig_shape))
 
 
 class Circular(MatchPattern):
