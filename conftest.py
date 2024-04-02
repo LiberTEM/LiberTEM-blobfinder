@@ -6,20 +6,6 @@ in both doctests and regular tests.
 import pytest
 import numpy as np
 
-from libertem.io.dataset.memory import MemoryDataSet
-from libertem.executor.inline import InlineJobExecutor
-from libertem import api as lt
-
-
-@pytest.fixture
-def inline_executor():
-    return InlineJobExecutor(debug=True)
-
-
-@pytest.fixture
-def lt_ctx(inline_executor):
-    return lt.Context(executor=inline_executor)
-
 
 @pytest.fixture
 def points():
@@ -64,13 +50,22 @@ def b():
 
 @pytest.fixture(autouse=True)
 def auto_ctx(doctest_namespace):
-    ctx = lt.Context(executor=InlineJobExecutor())
+    try:
+        from libertem.executor.inline import InlineJobExecutor
+        from libertem import api as lt
+        ctx = lt.Context(executor=InlineJobExecutor())
+    except ImportError:
+        ctx = None
     doctest_namespace["ctx"] = ctx
 
 
 @pytest.fixture(autouse=True)
 def auto_ds(doctest_namespace):
-    dataset = MemoryDataSet(datashape=[16, 16, 16, 16])
+    try:
+        from libertem.io.dataset.memory import MemoryDataSet
+        dataset = MemoryDataSet(datashape=[16, 16, 16, 16])
+    except ImportError:
+        dataset = None
     doctest_namespace["dataset"] = dataset
 
 
@@ -81,16 +76,19 @@ def auto_libs(doctest_namespace):
 
 @pytest.fixture(autouse=True)
 def auto_libertem(doctest_namespace):
-    import libertem
-    import libertem.utils
-    import libertem.utils.generate
-    import libertem.masks
-    import libertem.api
-    import libertem_blobfinder
+    try:
+        import libertem
+        import libertem.utils
+        import libertem.utils.generate
+        import libertem.masks
+        import libertem.api
+        import libertem_blobfinder
 
-    doctest_namespace["libertem"] = libertem
-    doctest_namespace["libertem.utils"] = libertem.utils
-    doctest_namespace["libertem.utils.generate"] = libertem.utils.generate
-    doctest_namespace["libertem.masks"] = libertem.masks
-    doctest_namespace["libertem.api"] = libertem.api
-    doctest_namespace["libertem_blobfinder"] = libertem_blobfinder
+        doctest_namespace["libertem"] = libertem
+        doctest_namespace["libertem.utils"] = libertem.utils
+        doctest_namespace["libertem.utils.generate"] = libertem.utils.generate
+        doctest_namespace["libertem.masks"] = libertem.masks
+        doctest_namespace["libertem.api"] = libertem.api
+        doctest_namespace["libertem_blobfinder"] = libertem_blobfinder
+    except ImportError:
+        pass  # anything better to do here?
