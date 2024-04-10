@@ -1,6 +1,6 @@
 import numpy as np
-from libertem.utils import frame_peaks
 
+from libertem_blobfinder.base.utils import frame_peaks
 import libertem_blobfinder.common.gridmatching as grm
 
 from libertem_blobfinder.common.patterns import MatchPattern

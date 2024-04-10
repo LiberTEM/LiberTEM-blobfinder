@@ -1,8 +1,7 @@
 import numpy as np
 from typing import Tuple
 
-import libertem.masks as masks
-
+from libertem_blobfinder.base import masks
 from skimage.util import crop
 
 

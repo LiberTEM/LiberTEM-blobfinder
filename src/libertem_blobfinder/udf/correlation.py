@@ -4,9 +4,9 @@ import numpy as np
 import sparseconverter
 
 from libertem.udf import UDF
-import libertem.masks as masks
 from libertem.common.container import MaskContainer
 
+from libertem_blobfinder.base import masks
 from libertem_blobfinder.common.patterns import MatchPattern
 import libertem_blobfinder.base.correlation as ltbc
 from libertem_blobfinder.common.correlation import get_peaks

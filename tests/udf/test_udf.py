@@ -1,16 +1,18 @@
+import functools
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
 import matplotlib.pyplot as plt
 from sparseconverter import get_device_class
 
-import libertem_blobfinder.common.gridmatching as grm
-import libertem.masks as m
-from libertem.utils.generate import cbed_frame
 from libertem.io.dataset.memory import MemoryDataSet
 from libertem.udf.base import UDF
+from libertem.udf.masks import ApplyMasksUDF
+
 
 from libertem_blobfinder import common, udf
+import libertem_blobfinder.common.gridmatching as grm
+import libertem_blobfinder.base.masks as m
 import libertem_blobfinder.common.correlation
 import libertem_blobfinder.common.patterns
 import libertem_blobfinder.udf.refinement
@@ -19,7 +21,7 @@ import libertem_blobfinder.udf.integration
 import libertem_blobfinder.udf.utils  # noqa F401
 from libertem_blobfinder.udf.refinement import run_refine
 
-from utils import _mk_random, set_device_class
+from utils import _mk_random, cbed_frame, set_device_class
 
 
 @pytest.mark.parametrize(
@@ -654,3 +656,51 @@ def test_integration(lt_ctx):
     # Make sure the integration result matches exactly the sum of one peak
     assert_allclose(ref_frame.sum(), res['integration'].data)
     assert res['integration'].data.shape == peaks.shape[:-1]
+
+
+def test_featurevector(lt_ctx):
+    shape = np.array([128, 128])
+    zero = shape // 2
+    a = np.array([24, 0.])
+    b = np.array([0., 30])
+    indices = np.mgrid[-2:3, -2:3]
+    indices = np.concatenate(indices.T)
+
+    radius = 5
+    radius_outer = 10
+
+    template = m.background_subtraction(
+        centerX=radius_outer + 1,
+        centerY=radius_outer + 1,
+        imageSizeX=radius_outer*2 + 2,
+        imageSizeY=radius_outer*2 + 2,
+        radius=radius_outer,
+        radius_inner=radius + 1,
+        antialiased=False
+    )
+
+    data, indices, peaks = cbed_frame(*shape, zero, a, b, indices, radius, all_equal=True)
+
+    dataset = MemoryDataSet(data=data, tileshape=(1, *shape),
+                            num_partitions=1, sig_dims=2)
+
+    match_pattern = common.patterns.UserTemplate(template=template)
+
+    stack = functools.partial(
+        common.patterns.feature_vector,
+        imageSizeX=shape[1],
+        imageSizeY=shape[0],
+        peaks=peaks,
+        match_pattern=match_pattern,
+    )
+
+    m_udf = ApplyMasksUDF(
+        mask_factories=stack, mask_count=len(peaks), mask_dtype=np.float32
+    )
+    res = lt_ctx.run_udf(dataset=dataset, udf=m_udf)
+
+    peak_data, _, _ = cbed_frame(*shape, zero, a, b, np.array([(0, 0)]), radius, all_equal=True)
+    peak_sum = peak_data.sum()
+
+    assert np.allclose(res['intensity'].data.sum(), data.sum())
+    assert np.allclose(res['intensity'].data, peak_sum)

@@ -6,7 +6,7 @@ Code to match parallelogram grids to point clouds. This
 can connect diffraction spots to a lattice.
 '''
 import numpy as np
-from libertem.utils import calc_coords, within_frame
+from libertem_blobfinder.base.utils import calc_coords, within_frame
 
 
 class CorrelationResult:
