@@ -1,11 +1,15 @@
 from contextlib import contextmanager
 
 import numpy as np
+import sparse
+import scipy.sparse as sp
 import pytest
 
 from libertem.common.backend import get_use_cpu, get_use_cuda, set_use_cpu, set_use_cuda
 from libertem.utils.devices import detect
-from libertem.masks import to_dense
+
+import libertem_blobfinder.base.masks as m
+from libertem_blobfinder.base.utils import make_cartesian, make_polar, frame_peaks
 from libertem_blobfinder.common.gridmatching import calc_coords
 
 
@@ -88,3 +92,63 @@ def set_device_class(device_class):
             set_use_cuda(prev_cuda_id)
         else:
             raise RuntimeError('No previous device ID, this should not happen.')
+
+
+def prod(iterable):
+    '''
+    Safe product for large integer size calculations.
+
+    :meth:`numpy.prod` uses 32 bit for default :code:`int` on Windows 64 bit. This
+    function uses infinite width integers to calculate the product and
+    throws a ValueError if it encounters types other than the supported ones.
+    '''
+    result = 1
+
+    for item in iterable:
+        result *= int(item)
+    return result
+
+
+def to_dense(a):
+    if isinstance(a, sparse.SparseArray):
+        return a.todense()
+    elif sp.issparse(a):
+        return a.toarray()
+    else:
+        return np.array(a)
+
+
+def cbed_frame(
+        fy=128, fx=128, zero=None, a=None, b=None, indices=None,
+        radius=4, all_equal=False, margin=None):
+    if zero is None:
+        zero = (fy//2, fx//2)
+    zero = np.array(zero)
+    if a is None:
+        a = (fy//8, 0)
+    a = np.array(a)
+    if b is None:
+        b = make_cartesian(make_polar(a) - (0, np.pi/2))
+    b = np.array(b)
+    if indices is None:
+        indices = np.mgrid[-10:11, -10:11]
+    if margin is None:
+        margin = radius
+    indices, peaks = frame_peaks(fy=fy, fx=fx, zero=zero, a=a, b=b, r=margin, indices=indices)
+
+    data = np.zeros((1, fy, fx), dtype=np.float32)
+
+    dists = np.linalg.norm(peaks - zero, axis=-1)
+    max_val = max(dists.max() + 1, len(peaks) + 1)
+
+    for i, p in enumerate(peaks):
+        data += m.circular(
+            centerX=p[1],
+            centerY=p[0],
+            imageSizeX=fx,
+            imageSizeY=fy,
+            radius=radius,
+            antialiased=True,
+        ) * (1 if all_equal else max(1, max_val - dists[i] + i))
+
+    return (data, indices, peaks)

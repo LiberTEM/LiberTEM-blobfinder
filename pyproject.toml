@@ -12,6 +12,7 @@ dependencies = [
     "numpy",
     "numba>=0.49",
     "sparseconverter",
+    "scikit-image",
 ]
 keywords = ["electron microscopy"]
 classifiers = [
@@ -38,8 +39,8 @@ authors = [
 ]
 
 [project.optional-dependencies]
-udf = ["libertem>=0.12.0,<1", "scikit-image", "matplotlib"]
-common = ["libertem>=0.12.0,<1", "scikit-image"]
+udf = ["libertem>=0.12.0,<1", "matplotlib"]
+common = ["libertem>=0.12.0,<1"]
 hdbscan = ["hdbscan"]
 
 [project.urls]

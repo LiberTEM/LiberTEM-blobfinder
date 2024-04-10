@@ -1,20 +1,15 @@
-import functools
-
 import numpy as np
 import pytest
 
-import libertem.masks as m
-from libertem.utils.generate import cbed_frame
-from libertem.io.dataset.memory import MemoryDataSet
-from libertem.udf.masks import ApplyMasksUDF
+import libertem_blobfinder.base.masks as m
+from libertem_blobfinder.common import patterns, correlation
 
-from libertem_blobfinder import common
-import libertem_blobfinder.udf.refinement  # noqa F401
+from utils import cbed_frame
 
 
 def test_custom_template():
     template = m.radial_gradient(centerX=10, centerY=10, imageSizeX=21, imageSizeY=23, radius=7)
-    custom = common.patterns.UserTemplate(template=template, search=18)
+    custom = patterns.UserTemplate(template=template, search=18)
 
     assert custom.get_crop_size() == 18
 
@@ -56,57 +51,9 @@ def test_custom_template_fuzz():
             imageSizeX=size_x, imageSizeY=size_y,
             radius=radius
         )
-        custom = common.patterns.UserTemplate(template=template, search=search)
+        custom = patterns.UserTemplate(template=template, search=search)
 
         mask = custom.get_mask((mask_y, mask_x))  # noqa
-
-
-def test_featurevector(lt_ctx):
-    shape = np.array([128, 128])
-    zero = shape // 2
-    a = np.array([24, 0.])
-    b = np.array([0., 30])
-    indices = np.mgrid[-2:3, -2:3]
-    indices = np.concatenate(indices.T)
-
-    radius = 5
-    radius_outer = 10
-
-    template = m.background_subtraction(
-        centerX=radius_outer + 1,
-        centerY=radius_outer + 1,
-        imageSizeX=radius_outer*2 + 2,
-        imageSizeY=radius_outer*2 + 2,
-        radius=radius_outer,
-        radius_inner=radius + 1,
-        antialiased=False
-    )
-
-    data, indices, peaks = cbed_frame(*shape, zero, a, b, indices, radius, all_equal=True)
-
-    dataset = MemoryDataSet(data=data, tileshape=(1, *shape),
-                            num_partitions=1, sig_dims=2)
-
-    match_pattern = common.patterns.UserTemplate(template=template)
-
-    stack = functools.partial(
-        common.patterns.feature_vector,
-        imageSizeX=shape[1],
-        imageSizeY=shape[0],
-        peaks=peaks,
-        match_pattern=match_pattern,
-    )
-
-    m_udf = ApplyMasksUDF(
-        mask_factories=stack, mask_count=len(peaks), mask_dtype=np.float32
-    )
-    res = lt_ctx.run_udf(dataset=dataset, udf=m_udf)
-
-    peak_data, _, _ = cbed_frame(*shape, zero, a, b, np.array([(0, 0)]), radius, all_equal=True)
-    peak_sum = peak_data.sum()
-
-    assert np.allclose(res['intensity'].data.sum(), data.sum())
-    assert np.allclose(res['intensity'].data, peak_sum)
 
 
 @pytest.mark.with_numba
@@ -131,12 +78,12 @@ def test_standalone_fast():
     )
 
     match_patterns = [
-        common.patterns.RadialGradient(radius=radius, search=radius*1.5),
-        common.patterns.BackgroundSubtraction(
+        patterns.RadialGradient(radius=radius, search=radius*1.5),
+        patterns.BackgroundSubtraction(
             radius=radius, radius_outer=radius*1.5, search=radius*1.8),
-        common.patterns.RadialGradientBackgroundSubtraction(
+        patterns.RadialGradientBackgroundSubtraction(
             radius=radius, radius_outer=radius*1.5, search=radius*1.8),
-        common.patterns.UserTemplate(template=template, search=radius*1.5)
+        patterns.UserTemplate(template=template, search=radius*1.5)
     ]
 
     print("zero: ", zero)
@@ -145,7 +92,7 @@ def test_standalone_fast():
 
     for match_pattern in match_patterns:
         print("refining using template %s" % type(match_pattern))
-        (centers, refineds, heights, elevations) = common.correlation.process_frames_fast(
+        (centers, refineds, heights, elevations) = correlation.process_frames_fast(
             pattern=match_pattern,
             frames=data, peaks=peaks.astype(np.int32),
         )
@@ -177,12 +124,12 @@ def test_standalone_full():
     )
 
     match_patterns = [
-        common.patterns.RadialGradient(radius=radius, search=radius*1.5),
-        common.patterns.BackgroundSubtraction(
+        patterns.RadialGradient(radius=radius, search=radius*1.5),
+        patterns.BackgroundSubtraction(
             radius=radius, radius_outer=radius*1.5, search=radius*1.8),
-        common.patterns.RadialGradientBackgroundSubtraction(
+        patterns.RadialGradientBackgroundSubtraction(
             radius=radius, radius_outer=radius*1.5, search=radius*1.8),
-        common.patterns.UserTemplate(template=template, search=radius*1.5)
+        patterns.UserTemplate(template=template, search=radius*1.5)
     ]
 
     print("zero: ", zero)
@@ -191,7 +138,7 @@ def test_standalone_full():
 
     for match_pattern in match_patterns:
         print("refining using template %s" % type(match_pattern))
-        (centers, refineds, heights, elevations) = common.correlation.process_frames_full(
+        (centers, refineds, heights, elevations) = correlation.process_frames_full(
             pattern=match_pattern,
             frames=data, peaks=peaks.astype(np.int32),
         )

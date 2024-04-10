@@ -12,7 +12,7 @@ import numpy as np
 import hdbscan
 
 import libertem_blobfinder.common.gridmatching as grm
-from libertem.utils import make_polar, make_cartesian
+from libertem_blobfinder.base.utils import make_polar, make_cartesian
 
 
 log = logging.getLogger(__name__)
