@@ -203,7 +203,8 @@ class RadialGradientBackgroundSubtraction(UserTemplate):
     '''
     def __init__(self, radius, search=None, radius_outer=None, delta=1, radial_map=None):
         '''
-        See :meth:`~libertem.masks.radial_gradient_background_subtraction` for details.
+        See :meth:`~libertem_blobfinder.base.masks.radial_gradient_background_subtraction`
+        for details.
 
         Parameters
         ----------
@@ -221,14 +222,14 @@ class RadialGradientBackgroundSubtraction(UserTemplate):
         radial_map : numpy.ndarray, optional
             Radius value of each pixel in px. This can be used to distort the shape as needed
             or work in physical coordinates instead of pixels.
-            A suitable map can be generated with :meth:`libertem.masks.polar_map`.
+            A suitable map can be generated with :meth:`libertem_blobfinder.base.masks.polar_map`.
 
         Example
         -------
 
         >>> import matplotlib.pyplot as plt
 
-        >>> (radius, phi) = libertem.masks.polar_map(
+        >>> (radius, phi) = libertem_blobfinder.base.masks.polar_map(
         ...     centerX=64, centerY=64,
         ...     imageSizeX=128, imageSizeY=128,
         ...     stretchY=2., angle=np.pi/4
