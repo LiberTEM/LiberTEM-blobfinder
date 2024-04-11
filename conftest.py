@@ -75,6 +75,12 @@ def auto_libs(doctest_namespace):
 
 
 @pytest.fixture(autouse=True)
+def auto_blobfinder(doctest_namespace):
+    import libertem_blobfinder
+    doctest_namespace["libertem_blobfinder"] = libertem_blobfinder
+
+
+@pytest.fixture(autouse=True)
 def auto_libertem(doctest_namespace):
     try:
         import libertem
