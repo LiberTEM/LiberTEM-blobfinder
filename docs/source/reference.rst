@@ -5,29 +5,30 @@ Reference
 
 LiberTEM-blobfinder is structured into three parts:
 
-1. A "base" package with numerics functions that work independent of LiberTEM.
-2. A "common" package that uses other "common" aspects of LiberTEM for convenience,
-   but can be used independent of LiberTEM core facilities.
-3. A "udf" package with classes and functions to use this functionality with full
-   LiberTEM integration.
+1. A "base" package with numerics functions and utilities.
+2. A "common" package providing user-facing funtcions to run
+   Blobfinder without any dependency on LiberTEM itself.
+3. A "udf" package with classes and functions to use this
+   functionality with full LiberTEM integration.
 
 .. _`blobfinder base`:
 
 Basic numerics functions
 ------------------------
 
-These functions work independent of any LiberTEM infrastructure.
-
 .. automodule:: libertem_blobfinder.base.correlation
    :members: 
    :special-members: __init__
+
+.. automodule:: libertem_blobfinder.base.masks
+   :members:
 
 .. _`blobfinder common`:
 
 Common classes and functions
 ----------------------------
 
-These functions and classes depend on other LiberTEM "common" packages, but can
+These functions and classes provide Blobfinder's funtcionality, but can
 be used without the LiberTEM core infrastructure.
 
 .. automodule:: libertem_blobfinder.common.patterns

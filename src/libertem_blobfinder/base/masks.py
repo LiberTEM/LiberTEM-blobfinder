@@ -177,7 +177,8 @@ def radial_gradient_background_subtraction(r, r0, r_outer, delta=1):
     and a negative ring with value -1 in [r0 + delta/2, r_outer].
 
     The function accepts the radius for each pixel as a parameter so that a distorted version can
-    be generated with the stretchY and angle parameters of :meth:`~libertem.masks.polar_map`.
+    be generated with the stretchY and angle parameters of
+    :meth:`~libertem_blobfinder.base.masks.polar_map`.
 
     Parameters
     ----------
@@ -185,7 +186,8 @@ def radial_gradient_background_subtraction(r, r0, r_outer, delta=1):
     r : numpy.ndarray
         Map of radius for each pixel, typically 2D. This allows to work in distorted coordinate
         systems by assigning arbitrary radius values to each pixel.
-        :meth:`~libertem.masks.polar_map` can generate elliptical maps as an example.
+        :meth:`~libertem_blobfinder.base.masks.polar_map` can generate elliptical
+        maps as an example.
     r0 : float
         Inner radius to fill with a linear gradient in units of r
     r_outer : float
