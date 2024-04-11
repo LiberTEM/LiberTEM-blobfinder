@@ -5,9 +5,6 @@ import sparse
 import scipy.sparse as sp
 import pytest
 
-from libertem.common.backend import get_use_cpu, get_use_cuda, set_use_cpu, set_use_cuda
-from libertem.utils.devices import detect
-
 import libertem_blobfinder.base.masks as m
 from libertem_blobfinder.base.utils import make_cartesian, make_polar, frame_peaks
 from libertem_blobfinder.common.gridmatching import calc_coords
@@ -68,6 +65,9 @@ def set_device_class(device_class):
     unavailable device classes and handling setting and re-setting the environment variables
     correctly.
     '''
+    from libertem.common.backend import get_use_cpu, get_use_cuda, set_use_cpu, set_use_cuda
+    from libertem.utils.devices import detect
+
     prev_cuda_id = get_use_cuda()
     prev_cpu_id = get_use_cpu()
     try:
