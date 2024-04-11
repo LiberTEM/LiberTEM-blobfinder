@@ -509,8 +509,9 @@ def process_frame_fast(
 
     >>> from libertem_blobfinder.common.patterns import RadialGradient
     >>> from libertem_blobfinder.base.correlation import allocate_crop_bufs
+    >>> from libertem_blobfinder.base.utils import cbed_frame
     >>>
-    >>> frames, indices, peaks = libertem.utils.generate.cbed_frame(radius=4)
+    >>> frames, indices, peaks = cbed_frame(radius=4)
     >>> pattern = RadialGradient(radius=4)
     >>> crop_size = pattern.get_crop_size()
     >>> template = pattern.get_template(sig_shape=(2 * crop_size, 2 * crop_size))
@@ -632,8 +633,9 @@ def process_frame_full(template, crop_size, frame, peaks,
 
     >>> from libertem_blobfinder.common.patterns import RadialGradient
     >>> from libertem_blobfinder.base.correlation import get_buf_count, zeros
+    >>> from libertem_blobfinder.base.utils import cbed_frame
     >>>
-    >>> frames, indices, peaks = libertem.utils.generate.cbed_frame()
+    >>> frames, indices, peaks = cbed_frame()
     >>> pattern = RadialGradient(radius=4)
     >>> crop_size = pattern.get_crop_size()
     >>> template = pattern.get_template(sig_shape=frames[0].shape)

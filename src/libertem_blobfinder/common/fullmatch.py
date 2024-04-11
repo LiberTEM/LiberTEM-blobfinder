@@ -9,7 +9,14 @@ can guess lattices from a set of diffraction spots using clustering.
 import logging
 
 import numpy as np
-import hdbscan
+try:
+    import hdbscan
+except ModuleNotFoundError:
+    raise ModuleNotFoundError(
+        "The fullmatch module requires the hdbscan extra, "
+        "please install -blobfinder with [hdbscan]."
+    )
+
 
 import libertem_blobfinder.common.gridmatching as grm
 from libertem_blobfinder.base.utils import make_polar, make_cartesian
