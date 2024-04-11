@@ -15,7 +15,7 @@ except ModuleNotFoundError:
     raise ModuleNotFoundError(
         "The fullmatch module requires the hdbscan extra, "
         "please install -blobfinder with [hdbscan]."
-    )
+    ) from None
 
 
 import libertem_blobfinder.common.gridmatching as grm
