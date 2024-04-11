@@ -40,7 +40,6 @@ authors = [
 
 [project.optional-dependencies]
 udf = ["libertem>=0.12.0,<1", "matplotlib"]
-common = ["libertem>=0.12.0,<1"]
 hdbscan = ["hdbscan"]
 
 [project.urls]
