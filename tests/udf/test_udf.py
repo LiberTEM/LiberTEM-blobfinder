@@ -13,6 +13,7 @@ from libertem.udf.masks import ApplyMasksUDF
 from libertem_blobfinder import common, udf
 import libertem_blobfinder.common.gridmatching as grm
 import libertem_blobfinder.base.masks as m
+from libertem_blobfinder.base.utils import cbed_frame
 import libertem_blobfinder.common.correlation
 import libertem_blobfinder.common.patterns
 import libertem_blobfinder.udf.refinement
@@ -21,7 +22,7 @@ import libertem_blobfinder.udf.integration
 import libertem_blobfinder.udf.utils  # noqa F401
 from libertem_blobfinder.udf.refinement import run_refine
 
-from utils import _mk_random, cbed_frame, set_device_class
+from utils import _mk_random, set_device_class
 
 
 @pytest.mark.parametrize(

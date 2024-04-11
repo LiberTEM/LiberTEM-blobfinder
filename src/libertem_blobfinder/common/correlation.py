@@ -51,8 +51,9 @@ def get_peaks(sum_result, match_pattern: MatchPattern, num_peaks):
 
     Example
     -------
-
-    >>> frame, _, _ = libertem.utils.generate.cbed_frame(radius=4)
+    >>> from libertem_blobfinder.base.utils import cbed_frame
+    >>>
+    >>> frame, _, _ = cbed_frame(radius=4)
     >>> pattern = libertem_blobfinder.common.patterns.RadialGradient(radius=4)
     >>> peaks = get_peaks(frame[0], pattern, 7)
     >>> print(peaks)
@@ -111,8 +112,9 @@ def process_frames_fast(
 
     Example
     -------
-
-    >>> frames, indices, peaks = libertem.utils.generate.cbed_frame()
+    >>> from libertem_blobfinder.base.utils import cbed_frame
+    >>>
+    >>> frames, indices, peaks = cbed_frame()
     >>> pattern = libertem_blobfinder.common.patterns.RadialGradient(radius=4)
     >>> (centers, refineds, heights, elevations) = process_frames_fast(
     ...     pattern=pattern,
@@ -187,7 +189,9 @@ def process_frames_full(
     Example
     -------
 
-    >>> frames, indices, peaks = libertem.utils.generate.cbed_frame(radius=4)
+    >>> from libertem_blobfinder.base.utils import cbed_frame
+    >>>
+    >>> frames, indices, peaks = cbed_frame(radius=4)
     >>> pattern = libertem_blobfinder.common.patterns.RadialGradient(radius=4)
     >>> (centers, refineds, heights, elevations) = process_frames_full(
     ...     pattern=pattern,

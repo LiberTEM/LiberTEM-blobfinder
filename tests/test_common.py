@@ -3,8 +3,7 @@ import pytest
 
 import libertem_blobfinder.base.masks as m
 from libertem_blobfinder.common import patterns, correlation
-
-from utils import cbed_frame
+from libertem_blobfinder.base.utils import cbed_frame
 
 
 def test_custom_template():
