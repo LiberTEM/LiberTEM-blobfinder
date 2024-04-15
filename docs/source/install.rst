@@ -15,17 +15,17 @@ package to use some of the functionality in other projects. Installing with
 
     $ pip install libertem-blobfinder
 
-only installs a minimum set of dependencies for :mod:`libertem_blobfinder.base`.
-Optional dependencies are managed through extras. The full set of dependencies
-can be installed with
+only installs the minimum set of dependencies to use :mod:`libertem_blobfinder`.
+Optional dependencies are managed through extras. The full set of dependencies,
+notably LiberTEM, can be installed with
 
 .. code-block:: shell
 
-    $ pip install libertem-blobfinder[common,udf]
+    $ pip install libertem-blobfinder[udf]
 
-The extra :code:`common` installs dependencies for
-:mod:`libertem_blobfinder.common`, and :code:`udf` for
-:mod:`libertem_blobfinder.udf`.
+The extra :code:`udf` installs dependencies for
+:mod:`libertem_blobfinder.udf` allowing blobfinder to
+be used on LiberTEM :class:`~libertem.io.dataset.base.DataSet` objects.
 
 Please note that this package is part of a `larger restructuring effort for
 LiberTEM <https://github.com/LiberTEM/LiberTEM/issues/261>`_. That means changes
