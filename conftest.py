@@ -84,16 +84,10 @@ def auto_blobfinder(doctest_namespace):
 def auto_libertem(doctest_namespace):
     try:
         import libertem
-        import libertem.utils
-        import libertem.utils.generate
-        import libertem.masks
         import libertem.api
         import libertem_blobfinder
 
         doctest_namespace["libertem"] = libertem
-        doctest_namespace["libertem.utils"] = libertem.utils
-        doctest_namespace["libertem.utils.generate"] = libertem.utils.generate
-        doctest_namespace["libertem.masks"] = libertem.masks
         doctest_namespace["libertem.api"] = libertem.api
         doctest_namespace["libertem_blobfinder"] = libertem_blobfinder
     except ImportError:
