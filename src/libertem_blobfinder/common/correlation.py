@@ -4,7 +4,7 @@ import numpy as np
 from skimage.feature import peak_local_max
 
 from libertem_blobfinder.common.patterns import MatchPattern
-from libertem_blobfinder import base
+from libertem_blobfinder.base import correlation
 
 
 def get_correlation(sum_result, match_pattern: MatchPattern):
@@ -23,9 +23,9 @@ def get_correlation(sum_result, match_pattern: MatchPattern):
         :code:`sum_result` with
     '''
     spec_mask = match_pattern.get_template(sig_shape=sum_result.shape)
-    spec_sum = base.correlation.fft.rfft2(sum_result)
+    spec_sum = correlation.fft.rfft2(sum_result)
     corrspec = spec_mask * spec_sum
-    return base.correlation.fft.fftshift(base.correlation.fft.irfft2(corrspec))
+    return correlation.fft.fftshift(correlation.fft.irfft2(corrspec))
 
 
 def get_peaks(sum_result, match_pattern: MatchPattern, num_peaks):
@@ -132,10 +132,10 @@ def process_frames_fast(
     heights = np.zeros((len(frames), len(peaks)), dtype=np.float32)
     elevations = np.zeros((len(frames), len(peaks)), dtype=np.float32)
 
-    crop_bufs = base.correlation.allocate_crop_bufs(crop_size, len(peaks), frames.dtype)
+    crop_bufs = correlation.allocate_crop_bufs(crop_size, len(peaks), frames.dtype)
 
     for i, f in enumerate(frames):
-        base.correlation.process_frame_fast(
+        correlation.process_frame_fast(
             template=template, crop_size=crop_size,
             frame=f, peaks=peaks.astype(np.int32),
             out_centers=centers[i], out_refineds=refineds[i],
@@ -208,12 +208,12 @@ def process_frames_full(
     heights = np.zeros((len(frames), len(peaks)), dtype=np.float32)
     elevations = np.zeros((len(frames), len(peaks)), dtype=np.float32)
 
-    frame_buf = base.correlation.zeros(frames[0].shape, dtype=np.float32)
+    frame_buf = correlation.zeros(frames[0].shape, dtype=np.float32)
 
-    buf_count = base.correlation.get_buf_count(crop_size, len(peaks), frame_buf.dtype)
+    buf_count = correlation.get_buf_count(crop_size, len(peaks), frame_buf.dtype)
 
     for i, f in enumerate(frames):
-        base.correlation.process_frame_full(
+        correlation.process_frame_full(
             template=template, crop_size=crop_size,
             frame=f, peaks=peaks.astype(np.int32),
             out_centers=centers[i], out_refineds=refineds[i],
