@@ -6,6 +6,30 @@ from libertem_blobfinder.common import patterns, correlation
 from libertem_blobfinder.base.utils import cbed_frame
 
 
+def test_circular_limits():
+    with pytest.raises(ValueError):
+        common.patterns.Circular(radius=5, search=4)
+
+
+def test_radial_gradient_limits():
+    with pytest.raises(ValueError):
+        common.patterns.RadialGradient(radius=5, search=4)
+
+
+def test_background_subtraction_limits():
+    with pytest.raises(ValueError):
+        common.patterns.BackgroundSubtraction(radius=5, search=4, radius_outer=6)
+    with pytest.raises(ValueError):
+        common.patterns.BackgroundSubtraction(radius=5, search=13, radius_outer=5)
+
+
+def test_radial_background_subtraction_limits():
+    with pytest.raises(ValueError):
+        common.patterns.RadialGradientBackgroundSubtraction(radius=5, search=4, radius_outer=6)
+    with pytest.raises(ValueError):
+        common.patterns.RadialGradientBackgroundSubtraction(radius=5, search=13, radius_outer=5)
+
+
 def test_custom_template():
     template = m.radial_gradient(centerX=10, centerY=10, imageSizeX=21, imageSizeY=23, radius=7)
     custom = patterns.UserTemplate(template=template, search=18)

@@ -55,6 +55,11 @@ class Circular(MatchPattern):
         '''
         if search is None:
             search = 2*radius
+        if search < radius:
+            raise ValueError(
+                f"search {search} < radius {radius}, "
+                "search must contain the pattern."
+            )
         self.radius = radius
         super().__init__(search=search)
 
@@ -88,6 +93,11 @@ class RadialGradient(MatchPattern):
         '''
         if search is None:
             search = 2*radius
+        if search < radius:
+            raise ValueError(
+                f"search {search} < radius {radius}, "
+                "search must contain the pattern."
+            )
         self.radius = radius
         super().__init__(search=search)
 
@@ -126,6 +136,13 @@ class BackgroundSubtraction(MatchPattern):
             radius_outer = radius * 1.5
         if search is None:
             search = max(2*radius, radius_outer)
+        if radius_outer <= radius:
+            raise ValueError(f"radius_outer {radius_outer} <= radius {radius}, must be larger.")
+        if search < radius_outer:
+            raise ValueError(
+                f"search {search} < radius_outer {radius_outer}, "
+                "search must contain the pattern."
+            )
         self.radius = radius
         self.radius_outer = radius_outer
         super().__init__(search=search)
@@ -248,6 +265,13 @@ class RadialGradientBackgroundSubtraction(UserTemplate):
             radius_outer = radius * 1.5
         if search is None:
             search = max(2*radius, radius_outer)
+        if radius_outer <= radius:
+            raise ValueError(f"radius_outer {radius_outer} <= radius {radius}, must be larger.")
+        if search < radius_outer:
+            raise ValueError(
+                f"search {search} < radius_outer {radius_outer}, "
+                "search must contain the pattern."
+            )
         if radial_map is None:
             r = max(radius, radius_outer)
             radial_map, _ = masks.polar_map(
