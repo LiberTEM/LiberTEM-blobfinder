@@ -12,6 +12,8 @@ dependencies = [
     "numpy",
     "numba>=0.49",
     "sparseconverter",
+    "scipy",
+    "sparse",
     "scikit-image",
 ]
 keywords = ["electron microscopy"]
