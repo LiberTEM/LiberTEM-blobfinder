@@ -17,6 +17,9 @@ Changelog
 0.6.1 / 2024-04-17
 ##################
 
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.10986304.svg
+  :target: https://doi.org/10.5281/zenodo.10986304
+
 This is a no-change release to hopefully fix our zenodo integration.
 
 .. _`v0-6-0`:
