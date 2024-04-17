@@ -2,9 +2,8 @@ Changelog
 =========
 
 .. _continuous:
-.. _`v0-6-0`:
 
-0.6.0.dev0 (continuous)
+0.7.0.dev0 (continuous)
 #######################
 
 .. toctree::
@@ -13,6 +12,53 @@ Changelog
    changelog/*/*
 
 .. _latest:
+.. _`v0-6-1`:
+
+0.6.1 / 2024-04-17
+##################
+
+This is a no-change release to hopefully fix our zenodo integration.
+
+.. _`v0-6-0`:
+
+0.6.0 / 2024-04-17
+##################
+
+This version now supports Python up to 3.12 and requires at least Python 3.9.
+We are now using hatchling to build the package.
+
+Features
+--------
+
+* Fourier upsampling is now implemented for calculating the
+  'refineds' peak positions in correlation UDFs. This approach
+  can give more precise results when peak shifts are sub-pixel
+  at the expense of increased computation, and is available
+  using the :code:`upsample=True` argument to UDF and associated
+  functions (see :issue:`39`, :pr:`70`).
+
+* All correlation UDFs now support GPU processing
+  with :code:`cupy`, in addition to sparse input
+  with the Fast and Sparse correlation UDFs. Conversion
+  from unsupported backends is automatically handled
+  using the `sparseconverter <https://github.com/LiberTEM/sparseconverter>`_
+  package. (see :pr:`61`)
+
+Misc
+----
+
+* The :mod:`libertem_blobfinder.common` module and associated tests
+  have been refactored to remove any dependency on LiberTEM. notably
+  this includes all mask-generating functions previously found in
+  :mod:`libertem.masks`, which are now found also in
+  :mod:`libertem_blobfinder.base.masks`. As part of this change
+  the :code:`common` extra dependency group has been removed (:pr:`87`).
+
+* Move :code:`gridmatching` and :code:`fullmatch` from :code:`libertem.analysis` to
+  :mod:`libertem_blobfinder.common.gridmatching` and :mod:`libertem_blobfinder.common.fullmatch` since
+  they make more sense here (:pr:`83`).
+
+
 .. _`v0-5-0`:
 
 0.5.0 / 2023-05-08
