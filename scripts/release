@@ -215,6 +215,8 @@ def get_latest_stable_tag():
             key=parse_version
         )
     )
+    if len(sorted_stable_tags) == 0:
+        return None
     return sorted_stable_tags[-1]
 
 
@@ -412,7 +414,7 @@ def upload_to_github(verbose, files, token, release):
         rel.upload_asset(path=path, content_type='application/octet-stream')
 
 
-def build_appimage(verbose):
+def build_the_appimage(verbose):
     APPIMAGE_DIR = join(BASE_DIR, 'packaging', 'appimage')
 
     if verbose:
@@ -569,7 +571,7 @@ def upload(ctx, dry_run, build_appimage, pypi_user, pypi_password,
     release = get_release_kind()
 
     if build_appimage:
-        appimage_files = build_appimage(verbose=ctx.obj['verbose'])
+        appimage_files = build_the_appimage(verbose=ctx.obj['verbose'])
     else:
         appimage_files = []
     github_files = get_py_release_files()
@@ -619,16 +621,11 @@ def status(ctx):
 @cli.command()
 @click.pass_context
 def do_build_appimage(ctx):
-    appimage_files = build_appimage(verbose=ctx.obj['verbose'])
+    appimage_files = build_the_appimage(verbose=ctx.obj['verbose'])
     print("success, files=", appimage_files)
 
 
-@cli.command()
-def docker_tags():
-    """
-    Prints the tags that should be used for any docker images that are built,
-    separated by whitespace.
-    """
+def get_docker_tags() -> list[str]:
     version = get_release_tag()
     is_latest_stable = version and (version["full"] == get_latest_stable_tag())
 
@@ -641,7 +638,43 @@ def docker_tags():
         tags.append("latest")
 
     tags.append("continuous")
+    return tags
 
+
+@cli.command()
+@click.argument('source_image', type=str)
+@click.argument('base_image_name', type=str)
+@click.option('--dry-run/--no-dry-run', default=False,
+              help="don't actually push, only prints the command that "
+                   "would be executed")
+def docker_retag(source_image, base_image_name, dry_run):
+    """
+    Re-tag and push the `source_image`, with the following template:
+
+    {base_image_name}:{tag}
+
+    For all tags that are applicable to the current version.
+    """
+    tags = get_docker_tags()
+
+    cmd = ['docker', 'buildx', 'imagetools', 'create']
+    for tag in tags:
+        cmd.extend(['--tag', f'{base_image_name}:{tag}'])
+    cmd.append(source_image)
+
+    if dry_run:
+        print(" ".join(cmd))
+    else:
+        subprocess.check_call(cmd)
+
+
+@cli.command()
+def docker_tags():
+    """
+    Prints the tags that should be used for any docker images that are built,
+    separated by whitespace.
+    """
+    tags = get_docker_tags()
     print(" ".join(tags))
 
 
