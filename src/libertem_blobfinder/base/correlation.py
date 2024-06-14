@@ -533,6 +533,8 @@ def process_frame_fast(
     ...     )
     >>> assert np.allclose(refineds[0], peaks, atol=0.1)
     '''
+    if upsample is True:
+        upsample = 20
     buf_count = len(crop_bufs)
     block_count = (len(peaks) - 1) // buf_count + 1
     for block in range(block_count):
