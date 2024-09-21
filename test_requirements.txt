@@ -3,3 +3,7 @@ pytest-cov
 scipy
 sparse
 matplotlib
+
+# to nudge uv in the right direction:
+numpy<2.1
+numba
