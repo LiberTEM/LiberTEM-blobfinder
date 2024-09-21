@@ -32,7 +32,9 @@ class IntegrationUDF(UDF):
         >>> peaks_shape = nav_shape + extra_shape
 
         >>> # Generate some random positions as an example
-        >>> peaks = np.random.randint(low=0, high=np.min(sig_shape), size=peaks_shape, dtype=np.int64)
+        >>> peaks = np.random.randint(
+        ...     low=0, high=np.min(sig_shape), size=peaks_shape, dtype=np.int64
+        ... )
 
         >>> # Create an AuxBufferWrapper for the peaks
         >>> centers = IntegrationUDF.aux_data(
