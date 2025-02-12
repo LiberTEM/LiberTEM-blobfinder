@@ -6,3 +6,4 @@ build
 html5lib
 docutils
 bibtexparser
+packaging
