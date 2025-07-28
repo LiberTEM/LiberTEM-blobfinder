@@ -4,6 +4,5 @@ scipy
 sparse
 matplotlib
 
-# to nudge uv in the right direction:
-numpy<2.1
-numba
+numpy
+numba>=0.53
