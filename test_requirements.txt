@@ -3,6 +3,3 @@ pytest-cov
 scipy
 sparse
 matplotlib
-
-numpy
-numba>=0.53
