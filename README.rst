@@ -36,4 +36,4 @@ See `example applications
 License
 -------
 
-LiberTEM-blobfinder is licensed under GPLv3.
+LiberTEM-blobfinder is licensed under the MIT license.
